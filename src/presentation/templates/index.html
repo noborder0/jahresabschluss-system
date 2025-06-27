@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jahresabschluss-System - Phase 1</title>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background-color: #fafafa;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: #4CAF50;
+            background-color: #f0f8f0;
+        }
+
+        .upload-area.dragover {
+            border-color: #4CAF50;
+            background-color: #e8f5e9;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .upload-button:hover {
+            background-color: #45a049;
+        }
+
+        .file-list {
+            margin-top: 30px;
+        }
+
+        .file-item {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .file-status {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" x-data="fileUploader()">
+        <h1>Jahresabschluss-System - Datei-Import</h1>
+
+        <!-- Upload Area -->
+        <div class="upload-area"
+             @dragover.prevent="dragover = true"
+             @dragleave.prevent="dragover = false"
+             @drop.prevent="handleDrop($event)"
+             :class="{ 'dragover': dragover }">
+
+            <p style="margin-bottom: 20px;">
+                Ziehen Sie Dateien hierher oder klicken Sie auf den Button
+            </p>
+
+            <input type="file"
+                   id="fileInput"
+                   @change="handleFileSelect($event)"
+                   accept=".xml,.csv,.pdf"
+                   multiple>
+
+            <label for="fileInput" class="upload-button">
+                Dateien auswählen
+            </label>
+
+            <p style="margin-top: 20px; color: #666; font-size: 14px;">
+                Unterstützte Formate: XML (Bank), CSV (DATEV), PDF (Belege)
+            </p>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error-message" x-show="error" x-text="error"></div>
+
+        <!-- File List -->
+        <div class="file-list" x-show="files.length > 0">
+            <h2>Importierte Dateien</h2>
+
+            <template x-for="file in files" :key="file.id">
+                <div class="file-item">
+                    <div class="file-info">
+                        <div class="file-name" x-text="file.name"></div>
+                        <div class="file-status">
+                            <span x-text="`${file.transactionCount || 0} Transaktionen`"></span>
+                            <span x-text="` • ${file.sourceType || 'Unbekannt'}`"></span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="status-badge"
+                              :class="{
+                                  'status-success': file.status === 'success',
+                                  'status-pending': file.status === 'pending',
+                                  'status-error': file.status === 'error'
+                              }"
+                              x-text="file.statusText">
+                        </span>
+                        <span class="loading" x-show="file.status === 'pending'"></span>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <script>
+        function fileUploader() {
+            return {
+                files: [],
+                error: null,
+                dragover: false,
+
+                handleFileSelect(event) {
+                    const files = Array.from(event.target.files);
+                    this.uploadFiles(files);
+                },
+
+                handleDrop(event) {
+                    this.dragover = false;
+                    const files = Array.from(event.dataTransfer.files);
+                    this.uploadFiles(files);
+                },
+
+                async uploadFiles(files) {
+                    for (const file of files) {
+                        const fileId = Date.now() + Math.random();
+
+                        // Add file to list with pending status
+                        this.files.unshift({
+                            id: fileId,
+                            name: file.name,
+                            status: 'pending',
+                            statusText: 'Wird hochgeladen...'
+                        });
+
+                        // Upload file
+                        try {
+                            const formData = new FormData();
+                            formData.append('file', file);
+
+                            const response = await fetch('/api/imports/file', {
+                                method: 'POST',
+                                body: formData
+                            });
+
+                            if (!response.ok) {
+                                throw new Error(`Upload fehlgeschlagen: ${response.statusText}`);
+                            }
+
+                            const result = await response.json();
+
+                            // Update file status
+                            const fileIndex = this.files.findIndex(f => f.id === fileId);
+                            if (fileIndex !== -1) {
+                                this.files[fileIndex] = {
+                                    ...this.files[fileIndex],
+                                    status: 'success',
+                                    statusText: 'Erfolgreich importiert',
+                                    transactionCount: result.transaction_count,
+                                    sourceType: result.source_type,
+                                    importId: result.import_id
+                                };
+                            }
+
+                            this.error = null;
+
+                        } catch (error) {
+                            // Update file status to error
+                            const fileIndex = this.files.findIndex(f => f.id === fileId);
+                            if (fileIndex !== -1) {
+                                this.files[fileIndex] = {
+                                    ...this.files[fileIndex],
+                                    status: 'error',
+                                    statusText: 'Fehler beim Import'
+                                };
+                            }
+
+                            this.error = error.message;
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

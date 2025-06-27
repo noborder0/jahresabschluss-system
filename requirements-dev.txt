@@ -1,0 +1,24 @@
+# requirements-dev.txt - Optional development tools
+
+# Code formatting
+black==23.11.0
+isort==5.12.0
+
+# Linting
+flake8==6.1.0
+pylint==3.0.2
+mypy==1.7.0
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+httpx==0.25.1  # For testing FastAPI
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.4.8
+
+# Development tools
+ipython==8.17.2
+watchdog==3.0.0
