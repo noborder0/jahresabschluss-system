@@ -60,6 +60,54 @@ def create_database_if_not_exists():
         print("Please create the database manually if needed")
 
 
+def update_existing_constraints():
+    """Update existing constraints to include new source types"""
+    print("\nUpdating database constraints...")
+
+    try:
+        with engine.connect() as conn:
+            # First, check if we need to update the constraint
+            result = conn.exec_driver_sql("""
+                SELECT conname 
+                FROM pg_constraint 
+                WHERE conrelid = 'import_batches'::regclass 
+                AND contype = 'c' 
+                AND conname LIKE '%source_type%'
+            """)
+
+            constraint_exists = result.fetchone()
+
+            if constraint_exists:
+                constraint_name = constraint_exists[0]
+                print(f"Found constraint: {constraint_name}")
+
+                # Drop the old constraint
+                conn.exec_driver_sql(f"ALTER TABLE import_batches DROP CONSTRAINT IF EXISTS {constraint_name}")
+
+                # Add the new constraint with all source types
+                conn.exec_driver_sql("""
+                    ALTER TABLE import_batches 
+                    ADD CONSTRAINT import_batches_source_type_check 
+                    CHECK (source_type IN ('BANK_CSV', 'DATEV', 'PDF', 'PAYPAL', 'STRIPE', 'MOLLIE'))
+                """)
+
+                print("✓ Constraint updated to include PayPal, Stripe and Mollie")
+            else:
+                # Add the constraint if it doesn't exist
+                conn.exec_driver_sql("""
+                    ALTER TABLE import_batches 
+                    ADD CONSTRAINT import_batches_source_type_check 
+                    CHECK (source_type IN ('BANK_CSV', 'DATEV', 'PDF', 'PAYPAL', 'STRIPE', 'MOLLIE'))
+                """)
+                print("✓ Constraint added with all source types")
+
+            conn.commit()
+
+    except Exception as e:
+        print(f"Note: Could not update constraints: {e}")
+        print("This is normal for a fresh installation")
+
+
 def init_database():
     """Initialize all database tables"""
     print("=== Database Initialization ===")
@@ -77,6 +125,9 @@ def init_database():
         Base.metadata.create_all(bind=engine)
         print("✓ All tables created successfully")
 
+        # Update constraints for existing installations
+        update_existing_constraints()
+
         # Run SQL initialization script if exists
         sql_file = os.path.join(project_root, 'migrations/schema/001_create_tables.sql')
         if os.path.exists(sql_file):
@@ -84,8 +135,20 @@ def init_database():
             with engine.connect() as conn:
                 with open(sql_file, 'r') as f:
                     sql_content = f.read()
-                    # Execute SQL statements
-                    conn.exec_driver_sql(sql_content)
+
+                    # Split into individual statements (simple approach)
+                    statements = sql_content.split(';')
+
+                    for statement in statements:
+                        statement = statement.strip()
+                        if statement and not statement.startswith('--'):
+                            try:
+                                conn.exec_driver_sql(statement + ';')
+                            except Exception as e:
+                                # Ignore errors for existing objects
+                                if 'already exists' not in str(e):
+                                    print(f"Warning: {e}")
+
                     conn.commit()
             print("✓ SQL initialization completed")
 

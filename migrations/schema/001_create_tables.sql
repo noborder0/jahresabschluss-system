@@ -7,7 +7,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Import batches table
 CREATE TABLE import_batches (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    source_type VARCHAR(20) NOT NULL CHECK (source_type IN ('BANK_CSV', 'DATEV', 'PDF')),
+    source_type VARCHAR(20) NOT NULL CHECK (source_type IN ('BANK_CSV', 'DATEV', 'PDF', 'PAYPAL', 'STRIPE', 'MOLLIE')),
     source_file VARCHAR(255) NOT NULL,
     bank_info JSONB,
     import_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -43,7 +43,7 @@ CREATE TABLE imported_transactions (
     INDEX idx_booking_date (booking_date)
 );
 
--- Documents table (for PDFs)
+-- Documents table (for PDFs and images)
 CREATE TABLE documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     filename VARCHAR(255) NOT NULL,
@@ -87,10 +87,16 @@ CREATE TABLE chart_of_accounts (
 -- Insert basic accounts
 INSERT INTO chart_of_accounts (account_number, account_name, account_type) VALUES
     ('1200', 'Bank', 'asset'),
+    ('1361', 'Guthaben bei Kreditinstituten (PayPal)', 'asset'),
+    ('1362', 'Guthaben bei Kreditinstituten (Stripe)', 'asset'),
+    ('1363', 'Guthaben bei Kreditinstituten (Mollie)', 'asset'),
     ('1400', 'Forderungen aus Lieferungen und Leistungen', 'asset'),
     ('1600', 'Verbindlichkeiten aus Lieferungen und Leistungen', 'liability'),
     ('1576', 'Abziehbare Vorsteuer 19%', 'asset'),
     ('1571', 'Abziehbare Vorsteuer 7%', 'asset'),
+    ('3736', 'Erhaltene Anzahlungen 19% USt (Stripe)', 'liability'),
+    ('3737', 'Erhaltene Anzahlungen 19% USt (PayPal)', 'liability'),
+    ('3738', 'Erhaltene Anzahlungen 19% USt (Mollie)', 'liability'),
     ('4200', 'Raumkosten', 'expense'),
     ('4930', 'Bürobedarf', 'expense'),
     ('6200', 'Löhne und Gehälter', 'expense'),

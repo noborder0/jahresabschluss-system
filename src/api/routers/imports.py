@@ -23,13 +23,20 @@ async def import_file(
         db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    Import a file (CSV or PDF)
-    The system automatically detects if it's a bank CSV, DATEV CSV, or PDF
+    Import a file (CSV, PDF, JPEG, or PNG)
+    The system automatically detects the file type:
+    - Bank CSV (German bank exports)
+    - PayPal CSV exports
+    - Stripe CSV exports
+    - Mollie CSV exports
+    - DATEV CSV exports
+    - PDF documents
+    - Image files (JPEG, PNG)
 
-    For bank imports, optional metadata can be provided:
+    For bank and payment provider imports, optional metadata can be provided:
     - account_name: Friendly name for the account
-    - iban: International Bank Account Number
-    - bic: Bank Identifier Code
+    - iban: International Bank Account Number (for bank accounts)
+    - bic: Bank Identifier Code (for bank accounts)
     """
     # Validate file
     if not file.filename:
@@ -70,14 +77,14 @@ async def import_file(
 
         # Process import
         try:
-            # For bank imports, pass the metadata
-            if importer_type == 'BankCSVImporter' and any([account_name, iban, bic]):
+            # For bank/payment imports, pass the metadata
+            if importer_type in ['BankCSVImporter', 'PayPalImporter', 'StripeImporter', 'MollieImporter'] and any([account_name, iban, bic]):
                 metadata = {
                     'account_name': account_name,
                     'iban': iban,
                     'bic': bic
                 }
-                print(f"Bank import with metadata: {metadata}")
+                print(f"{importer_type} with metadata: {metadata}")
                 result = await importer.import_file(temp_path, db, metadata=metadata)
             else:
                 result = await importer.import_file(temp_path, db)
@@ -106,7 +113,9 @@ async def import_file(
             "transaction_count": result.get("transaction_count", 0),
             "source_type": result.get("source_type"),
             "format": result.get("format", ""),
+            "file_type": result.get("file_type"),
             "bank_info": result.get("bank_info"),
+            "account_info": result.get("account_info"),  # For payment providers
             "preview": result.get("transactions", [])[:3] if result.get("transactions") else []
         }
 

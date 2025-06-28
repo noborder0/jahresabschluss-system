@@ -14,9 +14,9 @@ class ImportBatch(Base):
     __tablename__ = "import_batches"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    source_type = Column(String(20), nullable=False)  # BANK_CSV, DATEV, PDF
+    source_type = Column(String(20), nullable=False)  # BANK_CSV, DATEV, PDF, PAYPAL, STRIPE, MOLLIE
     source_file = Column(String(255), nullable=False)
-    bank_info = Column(JSON, nullable=True)  # Additional metadata for bank imports
+    bank_info = Column(JSON, nullable=True)  # Additional metadata for imports
     import_date = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -55,7 +55,7 @@ class ImportedTransaction(Base):
 
 
 class Document(Base):
-    """Stored documents (PDFs, etc.)"""
+    """Stored documents (PDFs, images, etc.)"""
     __tablename__ = "documents"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

@@ -103,15 +103,66 @@
             display: block;
         }
 
+        /* Payment provider selector */
+        .provider-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .provider-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .provider-card:hover {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .provider-card.selected {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .provider-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 12px;
+            color: #6b7280;
+        }
+
+        .provider-card.selected .provider-icon {
+            color: #10b981;
+        }
+
+        .provider-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+
+        .provider-description {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
         /* Bank metadata form */
-        .bank-metadata-section {
+        .metadata-section {
             background: #f8f9fa;
             border-radius: 8px;
             padding: 24px;
             margin-bottom: 24px;
         }
 
-        .bank-metadata-section h3 {
+        .metadata-section h3 {
             font-size: 16px;
             font-weight: 600;
             margin-bottom: 16px;
@@ -479,6 +530,10 @@
             .form-row {
                 grid-template-columns: 1fr;
             }
+
+            .provider-selector {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -499,11 +554,11 @@
             <div class="tabs-container">
                 <nav class="tabs-nav">
                     <button
-                        @click="activeTab = 'bank'"
-                        :class="{ 'active': activeTab === 'bank' }"
+                        @click="activeTab = 'payments'"
+                        :class="{ 'active': activeTab === 'payments' }"
                         class="tab-button"
                     >
-                        Bank Import
+                        Zahlungskonten
                     </button>
                     <button
                         @click="activeTab = 'datev'"
@@ -517,123 +572,232 @@
                         :class="{ 'active': activeTab === 'documents' }"
                         class="tab-button"
                     >
-                        Belege (PDF)
+                        Belege (PDF/Bilder)
                     </button>
                 </nav>
 
                 <div class="tab-content">
-                    <!-- Bank Tab -->
-                    <div class="tab-panel" :class="{ 'active': activeTab === 'bank' }">
-                        <h2 style="font-size: 18px; margin-bottom: 10px;">Bank CSV Import</h2>
+                    <!-- Payment Accounts Tab -->
+                    <div class="tab-panel" :class="{ 'active': activeTab === 'payments' }">
+                        <h2 style="font-size: 18px; margin-bottom: 10px;">Zahlungskonten Import</h2>
                         <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-                            Laden Sie Ihre Bank-Kontoauszüge im CSV-Format hoch. Geben Sie optional Kontoinformationen zur besseren Identifizierung an.
+                            Importieren Sie Kontoauszüge von Banken und Zahlungsdienstleistern
                         </p>
 
-                        <!-- Bank Metadata Form -->
-                        <div class="bank-metadata-section">
-                            <h3>Kontoinformationen (optional)</h3>
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="form-label" for="accountName">Kontobezeichnung</label>
-                                    <input
-                                        type="text"
-                                        id="accountName"
-                                        x-model="bankMetadata.accountName"
-                                        class="form-input"
-                                        placeholder="z.B. Geschäftskonto Sparkasse"
-                                    >
-                                </div>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label class="form-label" for="iban">IBAN</label>
-                                        <input
-                                            type="text"
-                                            id="iban"
-                                            x-model="bankMetadata.iban"
-                                            class="form-input"
-                                            placeholder="DE12 3456 7890 1234 5678 90"
-                                            @input="formatIBAN"
-                                        >
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label" for="bic">BIC</label>
-                                        <input
-                                            type="text"
-                                            id="bic"
-                                            x-model="bankMetadata.bic"
-                                            class="form-input"
-                                            placeholder="DEUTDEFF"
-                                            style="text-transform: uppercase;"
-                                        >
-                                    </div>
-                                </div>
+                        <!-- Provider Selection -->
+                        <div class="provider-selector">
+                            <div
+                                class="provider-card"
+                                :class="{ 'selected': selectedProvider === 'bank' }"
+                                @click="selectedProvider = 'bank'"
+                            >
+                                <svg class="provider-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                </svg>
+                                <div class="provider-name">Bank</div>
+                                <div class="provider-description">Deutsche Banken CSV</div>
+                            </div>
+
+                            <div
+                                class="provider-card"
+                                :class="{ 'selected': selectedProvider === 'paypal' }"
+                                @click="selectedProvider = 'paypal'"
+                            >
+                                <svg class="provider-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                <div class="provider-name">PayPal</div>
+                                <div class="provider-description">PayPal Export CSV</div>
+                            </div>
+
+                            <div
+                                class="provider-card"
+                                :class="{ 'selected': selectedProvider === 'stripe' }"
+                                @click="selectedProvider = 'stripe'"
+                            >
+                                <svg class="provider-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                                </svg>
+                                <div class="provider-name">Stripe</div>
+                                <div class="provider-description">Stripe Payments CSV</div>
+                            </div>
+
+                            <div
+                                class="provider-card"
+                                :class="{ 'selected': selectedProvider === 'mollie' }"
+                                @click="selectedProvider = 'mollie'"
+                            >
+                                <svg class="provider-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div class="provider-name">Mollie</div>
+                                <div class="provider-description">Mollie Settlement CSV</div>
                             </div>
                         </div>
 
-                        <!-- Upload Zone -->
-                        <div
-                            class="upload-zone"
-                            @dragover.prevent="bankDragover = true"
-                            @dragleave.prevent="bankDragover = false"
-                            @drop.prevent="handleBankDrop($event)"
-                            :class="{ 'dragover': bankDragover }"
-                        >
-                            <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-                            </svg>
-
-                            <input type="file" id="bankInput" @change="handleBankSelect($event)" accept=".csv" multiple>
-
-                            <p style="color: #666; margin-bottom: 16px;">Bank-CSV Dateien hierher ziehen oder</p>
-                            <label for="bankInput" class="upload-button">
-                                Dateien auswählen
-                            </label>
-
-                            <p style="font-size: 12px; color: #999; margin-top: 16px;">
-                                Unterstützte Formate: .csv (Bank-Kontoauszug)<br>
-                                Mehrere Dateien können gleichzeitig hochgeladen werden
-                            </p>
-                        </div>
-
-                        <!-- File Preview -->
-                        <template x-if="bankFiles.length > 0">
-                            <div style="margin-top: 20px;">
-                                <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Ausgewählte Dateien:</h4>
-                                <template x-for="(file, index) in bankFiles" :key="index">
-                                    <div class="file-preview">
-                                        <div class="file-info">
-                                            <svg class="file-icon-preview" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                            </svg>
-                                            <div>
-                                                <div class="file-name" x-text="file.name"></div>
-                                                <div style="font-size: 12px; color: #6b7280;" x-text="`${(file.size / 1024).toFixed(1)} KB`"></div>
+                        <!-- Provider-specific forms -->
+                        <template x-if="selectedProvider">
+                            <div>
+                                <!-- Bank Form -->
+                                <div x-show="selectedProvider === 'bank'" class="metadata-section">
+                                    <h3>Bank Kontoinformationen (optional)</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label class="form-label" for="bankAccountName">Kontobezeichnung</label>
+                                            <input
+                                                type="text"
+                                                id="bankAccountName"
+                                                x-model="paymentMetadata.accountName"
+                                                class="form-input"
+                                                placeholder="z.B. Geschäftskonto Sparkasse"
+                                            >
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label class="form-label" for="iban">IBAN</label>
+                                                <input
+                                                    type="text"
+                                                    id="iban"
+                                                    x-model="paymentMetadata.iban"
+                                                    class="form-input"
+                                                    placeholder="DE12 3456 7890 1234 5678 90"
+                                                    @input="formatIBAN"
+                                                >
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label" for="bic">BIC</label>
+                                                <input
+                                                    type="text"
+                                                    id="bic"
+                                                    x-model="paymentMetadata.bic"
+                                                    class="form-input"
+                                                    placeholder="DEUTDEFF"
+                                                    style="text-transform: uppercase;"
+                                                >
                                             </div>
                                         </div>
-                                        <button @click="removeBankFile(index)" class="remove-file-button">
-                                            ✕ Entfernen
+                                    </div>
+                                </div>
+
+                                <!-- PayPal Form -->
+                                <div x-show="selectedProvider === 'paypal'" class="metadata-section">
+                                    <h3>PayPal Kontoinformationen (optional)</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label class="form-label" for="paypalAccountName">Kontobezeichnung</label>
+                                            <input
+                                                type="text"
+                                                id="paypalAccountName"
+                                                x-model="paymentMetadata.accountName"
+                                                class="form-input"
+                                                placeholder="z.B. PayPal Geschäftskonto"
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Stripe Form -->
+                                <div x-show="selectedProvider === 'stripe'" class="metadata-section">
+                                    <h3>Stripe Kontoinformationen (optional)</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label class="form-label" for="stripeAccountName">Kontobezeichnung</label>
+                                            <input
+                                                type="text"
+                                                id="stripeAccountName"
+                                                x-model="paymentMetadata.accountName"
+                                                class="form-input"
+                                                placeholder="z.B. Stripe Hauptkonto"
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Mollie Form -->
+                                <div x-show="selectedProvider === 'mollie'" class="metadata-section">
+                                    <h3>Mollie Kontoinformationen (optional)</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label class="form-label" for="mollieAccountName">Kontobezeichnung</label>
+                                            <input
+                                                type="text"
+                                                id="mollieAccountName"
+                                                x-model="paymentMetadata.accountName"
+                                                class="form-input"
+                                                placeholder="z.B. Mollie Geschäftskonto"
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Upload Zone -->
+                                <div
+                                    class="upload-zone"
+                                    @dragover.prevent="paymentDragover = true"
+                                    @dragleave.prevent="paymentDragover = false"
+                                    @drop.prevent="handlePaymentDrop($event)"
+                                    :class="{ 'dragover': paymentDragover }"
+                                >
+                                    <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                    </svg>
+
+                                    <input type="file" id="paymentInput" @change="handlePaymentSelect($event)" accept=".csv" multiple>
+
+                                    <p style="color: #666; margin-bottom: 16px;">
+                                        <span x-text="getProviderUploadText()"></span>
+                                    </p>
+                                    <label for="paymentInput" class="upload-button">
+                                        Dateien auswählen
+                                    </label>
+
+                                    <p style="font-size: 12px; color: #999; margin-top: 16px;">
+                                        Unterstützte Formate: .csv<br>
+                                        Mehrere Dateien können gleichzeitig hochgeladen werden
+                                    </p>
+                                </div>
+
+                                <!-- File Preview -->
+                                <template x-if="paymentFiles.length > 0">
+                                    <div style="margin-top: 20px;">
+                                        <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Ausgewählte Dateien:</h4>
+                                        <template x-for="(file, index) in paymentFiles" :key="index">
+                                            <div class="file-preview">
+                                                <div class="file-info">
+                                                    <svg class="file-icon-preview" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                    </svg>
+                                                    <div>
+                                                        <div class="file-name" x-text="file.name"></div>
+                                                        <div style="font-size: 12px; color: #6b7280;" x-text="`${(file.size / 1024).toFixed(1)} KB`"></div>
+                                                    </div>
+                                                </div>
+                                                <button @click="removePaymentFile(index)" class="remove-file-button">
+                                                    ✕ Entfernen
+                                                </button>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+
+                                <!-- Submit Section -->
+                                <template x-if="paymentFiles.length > 0">
+                                    <div class="submit-section">
+                                        <button
+                                            @click="uploadPaymentFiles()"
+                                            :disabled="paymentUploading || paymentFiles.length === 0"
+                                            class="submit-button"
+                                        >
+                                            <span x-show="!paymentUploading">
+                                                <span x-text="`${paymentFiles.length} Datei${paymentFiles.length > 1 ? 'en' : ''} importieren`"></span>
+                                            </span>
+                                            <span x-show="paymentUploading">
+                                                <span class="spinner"></span>
+                                                Wird importiert...
+                                            </span>
                                         </button>
                                     </div>
                                 </template>
-                            </div>
-                        </template>
-
-                        <!-- Submit Section -->
-                        <template x-if="bankFiles.length > 0">
-                            <div class="submit-section">
-                                <button
-                                    @click="uploadBankFiles()"
-                                    :disabled="bankUploading || bankFiles.length === 0"
-                                    class="submit-button"
-                                >
-                                    <span x-show="!bankUploading">
-                                        <span x-text="`${bankFiles.length} Datei${bankFiles.length > 1 ? 'en' : ''} importieren`"></span>
-                                    </span>
-                                    <span x-show="bankUploading">
-                                        <span class="spinner"></span>
-                                        Wird importiert...
-                                    </span>
-                                </button>
                             </div>
                         </template>
                     </div>
@@ -671,7 +835,7 @@
                     <div class="tab-panel" :class="{ 'active': activeTab === 'documents' }">
                         <h2 style="font-size: 18px; margin-bottom: 10px;">Belege Upload</h2>
                         <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-                            Laden Sie Ihre Rechnungen und Belege als PDF hoch. Diese werden in Phase 2 mit KI analysiert.
+                            Laden Sie Ihre Rechnungen und Belege als PDF oder Bild hoch. Diese werden in Phase 2 mit KI analysiert.
                         </p>
 
                         <div
@@ -682,17 +846,20 @@
                             :class="{ 'dragover': pdfDragover }"
                         >
                             <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                             </svg>
 
-                            <input type="file" id="pdfInput" @change="handlePdfSelect($event)" accept=".pdf" multiple>
+                            <input type="file" id="pdfInput" @change="handlePdfSelect($event)" accept=".pdf,.jpg,.jpeg,.png" multiple>
 
-                            <p style="color: #666; margin-bottom: 16px;">PDF-Dateien hierher ziehen oder</p>
+                            <p style="color: #666; margin-bottom: 16px;">Dokumente hierher ziehen oder</p>
                             <label for="pdfInput" class="upload-button">
                                 Dateien auswählen
                             </label>
 
-                            <p style="font-size: 12px; color: #999; margin-top: 16px;">Mehrere Dateien können gleichzeitig hochgeladen werden</p>
+                            <p style="font-size: 12px; color: #999; margin-top: 16px;">
+                                Unterstützte Formate: PDF, JPEG, PNG<br>
+                                Mehrere Dateien können gleichzeitig hochgeladen werden
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -732,7 +899,7 @@
                                     <template x-for="import in group.imports" :key="import.id">
                                         <div class="import-item">
                                             <div class="import-info">
-                                                <span x-html="getFileIcon(import.sourceType)" class="file-icon"></span>
+                                                <span x-html="getFileIcon(import.sourceType, import.fileType)" class="file-icon"></span>
                                                 <div class="import-details">
                                                     <span class="import-filename" x-text="import.filename"></span>
                                                     <span class="import-date" x-text="formatDate(import.importDate)"></span>
@@ -740,7 +907,7 @@
                                             </div>
 
                                             <div class="import-stats">
-                                                <span class="transaction-count" x-text="`${import.transactionCount} Transaktionen`"></span>
+                                                <span class="transaction-count" x-text="`${import.transactionCount} ${import.transactionCount === 1 ? 'Beleg' : 'Transaktionen'}`"></span>
                                                 <span
                                                     class="status-badge"
                                                     :class="getStatusClass(import.status)"
@@ -761,22 +928,23 @@
     <script>
         function jahresabschlussApp() {
             return {
-                activeTab: 'bank',
+                activeTab: 'payments',
+                selectedProvider: 'bank',
                 error: null,
 
                 // Drag states
-                bankDragover: false,
+                paymentDragover: false,
                 datevDragover: false,
                 pdfDragover: false,
 
-                // Bank files and metadata
-                bankFiles: [],
-                bankMetadata: {
+                // Payment files and metadata
+                paymentFiles: [],
+                paymentMetadata: {
                     accountName: '',
                     iban: '',
                     bic: ''
                 },
-                bankUploading: false,
+                paymentUploading: false,
 
                 // Import history
                 imports: [],
@@ -807,8 +975,13 @@
 
                 getGroupKey(imp) {
                     if (imp.sourceType === 'BANK_CSV' && imp.bankInfo) {
-                        // Group by account name or account number
                         return imp.bankInfo.account_name || imp.bankInfo.account_number || 'bank_unknown';
+                    } else if (imp.sourceType === 'PAYPAL' && imp.accountInfo) {
+                        return imp.accountInfo.account_name || 'paypal_default';
+                    } else if (imp.sourceType === 'STRIPE' && imp.accountInfo) {
+                        return imp.accountInfo.account_name || 'stripe_default';
+                    } else if (imp.sourceType === 'MOLLIE' && imp.accountInfo) {
+                        return imp.accountInfo.account_name || 'mollie_default';
                     } else if (imp.sourceType === 'DATEV') {
                         return 'datev';
                     } else if (imp.sourceType === 'PDF') {
@@ -830,10 +1003,19 @@
                         }
 
                         return { name, subtitle };
+                    } else if (imp.sourceType === 'PAYPAL' && imp.accountInfo) {
+                        const name = imp.accountInfo.account_name || 'PayPal';
+                        return { name, subtitle: 'Zahlungsdienstleister' };
+                    } else if (imp.sourceType === 'STRIPE' && imp.accountInfo) {
+                        const name = imp.accountInfo.account_name || 'Stripe';
+                        return { name, subtitle: 'Payment Processor' };
+                    } else if (imp.sourceType === 'MOLLIE' && imp.accountInfo) {
+                        const name = imp.accountInfo.account_name || 'Mollie';
+                        return { name, subtitle: 'Payment Service Provider' };
                     } else if (imp.sourceType === 'DATEV') {
                         return { name: 'DATEV Exporte', subtitle: '' };
                     } else if (imp.sourceType === 'PDF') {
-                        return { name: 'PDF Belege', subtitle: '' };
+                        return { name: 'Belege', subtitle: 'PDF, JPEG und PNG Dokumente' };
                     }
                     return { name: 'Sonstige', subtitle: '' };
                 },
@@ -841,7 +1023,6 @@
                 // Format IBAN for display
                 formatIBANDisplay(iban) {
                     if (!iban) return '';
-                    // Remove spaces and format as DE12 3456 7890 1234 5678 90
                     const cleaned = iban.replace(/\s/g, '');
                     return cleaned.match(/.{1,4}/g).join(' ');
                 },
@@ -850,57 +1031,75 @@
                 formatIBAN(event) {
                     let value = event.target.value.replace(/\s/g, '');
                     let formatted = value.match(/.{1,4}/g)?.join(' ') || value;
-                    this.bankMetadata.iban = formatted;
+                    this.paymentMetadata.iban = formatted;
                 },
 
-                // Bank handlers
-                handleBankDrop(event) {
-                    this.bankDragover = false;
+                // Get provider upload text
+                getProviderUploadText() {
+                    const texts = {
+                        'bank': 'Bank CSV-Dateien hierher ziehen oder',
+                        'paypal': 'PayPal Export CSV hierher ziehen oder',
+                        'stripe': 'Stripe Payments CSV hierher ziehen oder',
+                        'mollie': 'Mollie Settlement CSV hierher ziehen oder'
+                    };
+                    return texts[this.selectedProvider] || 'CSV-Dateien hierher ziehen oder';
+                },
+
+                // Payment handlers
+                handlePaymentDrop(event) {
+                    this.paymentDragover = false;
                     const files = Array.from(event.dataTransfer.files);
-                    this.addBankFiles(files);
+                    this.addPaymentFiles(files);
                 },
 
-                handleBankSelect(event) {
+                handlePaymentSelect(event) {
                     const files = Array.from(event.target.files);
-                    this.addBankFiles(files);
+                    this.addPaymentFiles(files);
                 },
 
-                addBankFiles(files) {
-                    // Filter only CSV files
+                addPaymentFiles(files) {
                     const csvFiles = files.filter(file => file.name.toLowerCase().endsWith('.csv'));
-                    this.bankFiles = [...this.bankFiles, ...csvFiles];
+                    this.paymentFiles = [...this.paymentFiles, ...csvFiles];
                 },
 
-                removeBankFile(index) {
-                    this.bankFiles.splice(index, 1);
+                removePaymentFile(index) {
+                    this.paymentFiles.splice(index, 1);
                 },
 
-                async uploadBankFiles() {
-                    if (this.bankFiles.length === 0) return;
+                async uploadPaymentFiles() {
+                    if (this.paymentFiles.length === 0) return;
 
-                    this.bankUploading = true;
+                    this.paymentUploading = true;
                     this.error = null;
 
-                    for (const file of this.bankFiles) {
-                        await this.uploadBankFile(file);
+                    for (const file of this.paymentFiles) {
+                        await this.uploadPaymentFile(file);
                     }
 
                     // Clear files and metadata after successful upload
-                    this.bankFiles = [];
-                    this.bankMetadata = {
+                    this.paymentFiles = [];
+                    this.paymentMetadata = {
                         accountName: '',
                         iban: '',
                         bic: ''
                     };
 
-                    this.bankUploading = false;
+                    this.paymentUploading = false;
                 },
 
-                async uploadBankFile(file) {
+                async uploadPaymentFile(file) {
+                    // Determine source type based on provider
+                    const sourceTypeMap = {
+                        'bank': 'BANK_CSV',
+                        'paypal': 'PAYPAL',
+                        'stripe': 'STRIPE',
+                        'mollie': 'MOLLIE'
+                    };
+
                     const importEntry = {
                         id: Date.now() + Math.random(),
                         filename: file.name,
-                        sourceType: 'BANK_CSV',
+                        sourceType: sourceTypeMap[this.selectedProvider],
                         status: 'pending',
                         importDate: new Date(),
                         transactionCount: 0
@@ -913,14 +1112,14 @@
                         formData.append('file', file);
 
                         // Add metadata if provided
-                        if (this.bankMetadata.accountName) {
-                            formData.append('account_name', this.bankMetadata.accountName);
+                        if (this.paymentMetadata.accountName) {
+                            formData.append('account_name', this.paymentMetadata.accountName);
                         }
-                        if (this.bankMetadata.iban) {
-                            formData.append('iban', this.bankMetadata.iban.replace(/\s/g, ''));
+                        if (this.selectedProvider === 'bank' && this.paymentMetadata.iban) {
+                            formData.append('iban', this.paymentMetadata.iban.replace(/\s/g, ''));
                         }
-                        if (this.bankMetadata.bic) {
-                            formData.append('bic', this.bankMetadata.bic.toUpperCase());
+                        if (this.selectedProvider === 'bank' && this.paymentMetadata.bic) {
+                            formData.append('bic', this.paymentMetadata.bic.toUpperCase());
                         }
 
                         const response = await fetch('/api/imports/file', {
@@ -942,7 +1141,9 @@
                                 status: 'success',
                                 transactionCount: result.transaction_count || 0,
                                 importId: result.import_id,
-                                bankInfo: result.bank_info
+                                bankInfo: result.bank_info,
+                                accountInfo: result.account_info,
+                                fileType: result.file_type
                             };
                         }
 
@@ -1023,7 +1224,9 @@
                                 status: 'success',
                                 transactionCount: result.transaction_count || 0,
                                 importId: result.import_id,
-                                bankInfo: result.bank_info
+                                bankInfo: result.bank_info,
+                                accountInfo: result.account_info,
+                                fileType: result.file_type
                             };
                         }
 
@@ -1039,20 +1242,33 @@
                 },
 
                 getSourceType(file, type) {
-                    if (type === 'datev' || file.name.toLowerCase().endsWith('.csv')) {
+                    if (type === 'datev' || (file.name.toLowerCase().endsWith('.csv') && !file.name.toLowerCase().includes('konto'))) {
                         return 'DATEV';
-                    } else if (file.name.toLowerCase().endsWith('.pdf')) {
+                    } else if (file.name.toLowerCase().endsWith('.pdf') ||
+                              file.name.toLowerCase().endsWith('.jpg') ||
+                              file.name.toLowerCase().endsWith('.jpeg') ||
+                              file.name.toLowerCase().endsWith('.png')) {
                         return 'PDF';
                     }
                     return 'UNKNOWN';
                 },
 
-                getFileIcon(sourceType) {
+                getFileIcon(sourceType, fileType) {
                     const icons = {
                         'BANK_CSV': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>',
+                        'PAYPAL': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>',
+                        'STRIPE': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>',
+                        'MOLLIE': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
                         'DATEV': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>',
-                        'PDF': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>'
+                        'PDF': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>',
+                        'IMAGE': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>'
                     };
+
+                    // Use image icon for JPEG/PNG
+                    if (sourceType === 'PDF' && (fileType === 'JPEG' || fileType === 'PNG')) {
+                        return icons['IMAGE'];
+                    }
+
                     return icons[sourceType] || icons['PDF'];
                 },
 

@@ -5,6 +5,9 @@ from .base import BaseImporter
 from .bank_csv import BankCSVImporter
 from .datev import DATEVImporter
 from .pdf import PDFImporter
+from .paypal import PayPalImporter
+from .stripe import StripeImporter
+from .mollie import MollieImporter
 
 
 class ImporterFactory:
@@ -15,9 +18,12 @@ class ImporterFactory:
     def __init__(self):
         # Order matters - more specific importers first
         self._importers = [
-            BankCSVImporter(),  # Bank CSV should be checked before generic CSV
-            PDFImporter(),
-            DATEVImporter()  # DATEV handles remaining CSV files
+            BankCSVImporter(),      # Bank CSV should be checked before generic CSV
+            PayPalImporter(),       # PayPal CSV
+            StripeImporter(),       # Stripe CSV
+            MollieImporter(),       # Mollie CSV
+            PDFImporter(),          # PDF and image files
+            DATEVImporter()         # DATEV handles remaining CSV files
         ]
 
     def get_importer(self, filename: str) -> Optional[BaseImporter]:
@@ -36,4 +42,4 @@ class ImporterFactory:
         """
         Get list of supported file extensions
         """
-        return ['.csv', '.pdf']
+        return ['.csv', '.pdf', '.jpg', '.jpeg', '.png']

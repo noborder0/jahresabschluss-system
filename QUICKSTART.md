@@ -42,30 +42,48 @@ python run.py
 
 ## 📁 Unterstützte Dateiformate
 
-### 1. **Bank CSV**
+### 1. **Zahlungskonten (Neuer gemeinsamer Tab)**
+
+#### Bank CSV
 - Dateiendung: `.csv`
 - Beispiel: `Konto_3222594_250114_101756.csv`
 - Format: Semikolon-getrennt, 8 Spalten
 - Wird automatisch als Bank-Import erkannt wenn "Konto" im Dateinamen
 
+#### PayPal CSV
+- Dateiendung: `.csv`
+- Beispiel: `Download.CSV`
+- Format: Komma-getrennt, UTF-8
+- Enthält Transaktionsinformationen wie Datum, Betrag, Gebühren, Partner
+
+#### Stripe CSV
+- Dateiendung: `.csv`
+- Beispiel: `unified_payments4.csv`
+- Format: Komma-getrennt, UTF-8
+- Enthält Payment-Daten mit umfangreichen Metadaten
+
 ### 2. **DATEV CSV**
 - Dateiendung: `.csv`
-- Beliebiger Dateiname (ohne "Konto")
+- Beliebiger Dateiname (ohne "Konto", "PayPal", "Stripe")
 - Format: Windows-1252 oder UTF-8 Encoding
 - Automatische Format-Erkennung (Klassisch oder Belegexport)
 
-### 3. **PDF Belege**
-- Dateiendung: `.pdf`
+### 3. **Belege**
+- Dateiendungen: `.pdf`, `.jpg`, `.jpeg`, `.png`
 - Werden für Phase 2 (AI-Verarbeitung) gespeichert
 
 ## 🧪 Test mit Beispieldateien
 
 1. Öffnen Sie http://localhost:8000
 2. Wählen Sie den passenden Tab:
-   - **Bank Import**: Für Kontoauszüge im CSV-Format
+   - **Zahlungskonten**: Für Bank-, PayPal- und Stripe-Importe
    - **DATEV Import**: Für DATEV-Exporte
-   - **Belege**: Für PDF-Rechnungen
-3. Ziehen Sie eine Datei in den Upload-Bereich oder klicken Sie "Dateien auswählen"
+   - **Belege**: Für PDF-Rechnungen und Bilddateien
+3. Im Zahlungskonten-Tab:
+   - Wählen Sie den Provider (Bank, PayPal oder Stripe)
+   - Optional: Geben Sie Kontoinformationen ein
+   - Laden Sie die entsprechende CSV-Datei hoch
+4. Ziehen Sie eine Datei in den Upload-Bereich oder klicken Sie "Dateien auswählen"
 
 ## 🔍 API Dokumentation
 
@@ -84,6 +102,7 @@ psql -d jahresabschluss
 # Nützliche Queries:
 \dt                          -- Alle Tabellen anzeigen
 SELECT * FROM import_batches;  -- Import-Historie
+SELECT source_type, COUNT(*) FROM import_batches GROUP BY source_type; -- Import-Statistik
 SELECT * FROM imported_transactions LIMIT 10;  -- Importierte Transaktionen
 ```
 
@@ -113,10 +132,15 @@ mkdir -p uploads
 chmod 755 uploads
 ```
 
+### PayPal/Stripe-Import wird nicht erkannt
+- PayPal: Datei sollte "paypal" im Namen haben oder "Download.CSV" heißen
+- Stripe: Datei sollte "stripe", "payments" oder "unified_payments" im Namen haben
+- Alternative: Verwenden Sie den "Zahlungskonten" Tab und wählen Sie den Provider manuell
+
 ### Bank-Import wird nicht erkannt
 - Stellen Sie sicher, dass "Konto" im Dateinamen vorkommt
 - Beispiel: `Konto_1234567_250114_101756.csv`
-- Alternative: Verwenden Sie den "Bank Import" Tab
+- Alternative: Verwenden Sie den "Zahlungskonten" Tab und wählen Sie "Bank"
 
 ## 📈 Nächste Schritte (Phase 2)
 
@@ -124,7 +148,10 @@ Nach erfolgreichem Test von Phase 1:
 1. Azure Form Recognizer API Keys besorgen
 2. Anthropic Claude API Key besorgen
 3. .env mit API Keys aktualisieren
-4. Phase 2 Features aktivieren
+4. Phase 2 Features aktivieren:
+   - Automatische Dokumentenerkennung für PDFs/Bilder
+   - Intelligente Kontierung mit Claude
+   - Automatisches Matching von Zahlungen zu Belegen
 
 ## 🆘 Support
 
@@ -132,3 +159,15 @@ Bei Problemen:
 1. Logs prüfen: `docker-compose logs -f app`
 2. Konsolen-Output beachten
 3. API Docs konsultieren: http://localhost:8000/docs
+4. Beispiel-Importe:
+   ```bash
+   # PayPal
+   curl -X POST "http://localhost:8000/api/imports/file" \
+        -F "file=@Download.CSV" \
+        -F "account_name=PayPal Geschäft"
+   
+   # Stripe
+   curl -X POST "http://localhost:8000/api/imports/file" \
+        -F "file=@unified_payments4.csv" \
+        -F "account_name=Stripe Produktion"
+   ```

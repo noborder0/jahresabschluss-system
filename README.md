@@ -3,8 +3,11 @@
 ## Übersicht
 Phase 1 implementiert die grundlegende Import-Funktionalität für:
 - Bank CSV-Dateien (Kontoauszüge deutscher Banken)
+- PayPal CSV-Exporte
+- Stripe CSV-Exporte
+- Mollie CSV-Exporte
 - DATEV CSV-Dateien
-- PDF-Dokumente (für spätere AI-Verarbeitung)
+- PDF-Dokumente und Bilddateien (JPEG, PNG) für spätere AI-Verarbeitung
 
 ## Installation
 
@@ -75,17 +78,47 @@ Die Anwendung ist dann verfügbar unter:
 1. Öffnen Sie http://localhost:8000
 2. Wählen Sie den entsprechenden Tab für Ihren Import-Typ
 3. Ziehen Sie Dateien in den Upload-Bereich oder klicken Sie auf "Dateien auswählen"
-4. Unterstützte Formate:
-   - **Bank Import**: `.csv` - Kontoauszüge deutscher Banken (Format: Konto_XXXXX_DDMMYY_HHMMSS.csv)
-   - **DATEV Import**: `.csv` - DATEV-Exporte (klassisch oder Belegexport)
-   - **Belege**: `.pdf` - Rechnungen und Belege (werden in Phase 2 mit AI verarbeitet)
+
+### Unterstützte Formate
+
+#### Zahlungskonten Tab
+Kombiniert verschiedene Zahlungsdienstleister:
+- **Bank Import**: `.csv` - Kontoauszüge deutscher Banken (Format: Konto_XXXXX_DDMMYY_HHMMSS.csv)
+- **PayPal Import**: `.csv` - PayPal-Transaktionsexporte
+- **Stripe Import**: `.csv` - Stripe Payments Exporte
+- **Mollie Import**: `.csv` - Mollie Settlement Reports
+
+#### DATEV Tab
+- **DATEV Import**: `.csv` - DATEV-Exporte (klassisch oder Belegexport)
+
+#### Belege Tab  
+- **Dokumente**: `.pdf`, `.jpg`, `.jpeg`, `.png` - Rechnungen und Belege (werden in Phase 2 mit AI verarbeitet)
 
 ### API-Endpunkte
 
 **Import einer Datei:**
 ```bash
+# Bank CSV
 curl -X POST "http://localhost:8000/api/imports/file" \
-     -F "file=@Konto_1234567_250114_101756.csv"
+     -F "file=@Konto_1234567_250114_101756.csv" \
+     -F "account_name=Geschäftskonto Sparkasse" \
+     -F "iban=DE12345678901234567890" \
+     -F "bic=DEUTDEFF"
+
+# PayPal CSV
+curl -X POST "http://localhost:8000/api/imports/file" \
+     -F "file=@Download.CSV" \
+     -F "account_name=PayPal Geschäftskonto"
+
+# Stripe CSV
+curl -X POST "http://localhost:8000/api/imports/file" \
+     -F "file=@unified_payments4.csv" \
+     -F "account_name=Stripe Hauptkonto"
+
+# Mollie CSV
+curl -X POST "http://localhost:8000/api/imports/file" \
+     -F "file=@mollie_settlement.csv" \
+     -F "account_name=Mollie Geschäftskonto"
 ```
 
 **Import-Status abfragen:**
@@ -106,6 +139,45 @@ curl "http://localhost:8000/api/imports/status/{import_id}"
   6. Partner/Empfänger
   7. Verwendungszweck
   8. Kontonummer
+
+### PayPal CSV Format
+- Komma-getrennt (`,`)
+- Wichtige Spalten:
+  - Datum, Uhrzeit
+  - Name (Transaktionspartner)
+  - Typ (Transaktionstyp)
+  - Status
+  - Währung
+  - Brutto, Gebühr, Netto
+  - Transaktionscode
+  - Betreff
+
+### Stripe CSV Format
+- Komma-getrennt (`,`)
+- Wichtige Spalten:
+  - id (Stripe ID)
+  - Created date (UTC)
+  - Amount (in Cents)
+  - Fee
+  - Currency
+  - Status
+  - Customer Email
+  - Description
+  - Metadata-Felder
+
+### Mollie CSV Format
+- Komma-getrennt (`,`)
+- Wichtige Spalten:
+  - Date
+  - Payment method
+  - Currency
+  - Amount
+  - Status
+  - ID (Mollie Transaktions-ID)
+  - Description
+  - Consumer name
+  - Settlement amount
+  - Settlement reference
 
 ### DATEV CSV Format
 - Unterstützt klassische DATEV-Exporte und Belegexporte
@@ -139,8 +211,11 @@ jahresabschluss-system/
 │   │   │   ├── __init__.py
 │   │   │   ├── base.py
 │   │   │   ├── bank_csv.py    # Bank CSV Importer
-│   │   │   ├── datev.py
-│   │   │   ├── pdf.py
+│   │   │   ├── paypal.py      # PayPal CSV Importer
+│   │   │   ├── stripe.py      # Stripe CSV Importer
+│   │   │   ├── mollie.py      # Mollie CSV Importer
+│   │   │   ├── datev.py       # DATEV Importer
+│   │   │   ├── pdf.py         # PDF/Image Importer
 │   │   │   └── factory.py
 │   │   └── database/          # Datenbank
 │   │       ├── __init__.py
@@ -178,8 +253,17 @@ python run.py
 **Import schlägt fehl:**
 - Prüfen Sie das Dateiformat
 - Bei Bank-CSV: Dateiname sollte "Konto" enthalten
+- Bei PayPal-CSV: Typischerweise "Download.CSV"
+- Bei Stripe-CSV: Sollte "payments" oder "stripe" im Namen haben
+- Bei Mollie-CSV: Sollte "mollie" im Namen haben (z.B. mollie*settlement*.csv)
 - Bei DATEV-CSV: Beliebiger Name, System erkennt Format automatisch
 - Logs prüfen in der Konsole
+
+**Mollie Settlement Reports:**
+- Mollie erstellt oft mehrere Settlement-Dateien pro Monat
+- Jede Datei enthält eine Settlement-Referenz
+- Dateien können über den "Zahlungskonten" Tab gebündelt importiert werden
+- Settlement Amount ist der Nettobetrag nach Gebühren
 
 **Module nicht gefunden:**
 - Verwenden Sie `python run.py` statt direktes Ausführen
@@ -189,9 +273,12 @@ python run.py
 ## Beispiel-Dateien
 
 Sie können diese Beispiel-Dateien zum Testen verwenden:
-- Bank CSV: `Konto_3222594_250114_101756.csv` (Ihre bereitgestellte Datei)
+- Bank CSV: `Konto_3222594_250114_101756.csv`
+- PayPal CSV: `Download.CSV` 
+- Stripe CSV: `unified_payments4.csv`
+- Mollie CSV: `mollie*settlement*.csv`
 - DATEV CSV: Beliebige DATEV-Export-Datei
-- PDF: Beliebige Rechnung als PDF
+- PDF/Bilder: Beliebige Rechnung als PDF, JPEG oder PNG
 
 ## Nächste Schritte (Phase 2)
 
@@ -199,6 +286,8 @@ Phase 2 wird hinzufügen:
 - Azure AI Document Intelligence Integration
 - Claude API für intelligente Kontierung
 - Automatisches Matching und Buchungsvorschläge
+- Intelligente Kategorisierung von PayPal/Stripe/Mollie Transaktionen
+- Automatische Gebührenbuchungen für Payment Provider
 
 ## Support
 
