@@ -2,7 +2,7 @@
 
 ## Übersicht
 Phase 1 implementiert die grundlegende Import-Funktionalität für:
-- Bank XML-Dateien (GDPdU-Format)
+- Bank CSV-Dateien (Kontoauszüge deutscher Banken)
 - DATEV CSV-Dateien
 - PDF-Dokumente (für spätere AI-Verarbeitung)
 
@@ -73,24 +73,44 @@ Die Anwendung ist dann verfügbar unter:
 
 ### Web-Interface
 1. Öffnen Sie http://localhost:8000
-2. Ziehen Sie Dateien in den Upload-Bereich oder klicken Sie auf "Dateien auswählen"
-3. Unterstützte Formate:
-   - `.xml` - Bank-Exporte im GDPdU-Format
-   - `.csv` - DATEV-Exporte (Dateiname sollte "datev" enthalten)
-   - `.pdf` - Belege (werden gespeichert für Phase 2 AI-Verarbeitung)
+2. Wählen Sie den entsprechenden Tab für Ihren Import-Typ
+3. Ziehen Sie Dateien in den Upload-Bereich oder klicken Sie auf "Dateien auswählen"
+4. Unterstützte Formate:
+   - **Bank Import**: `.csv` - Kontoauszüge deutscher Banken (Format: Konto_XXXXX_DDMMYY_HHMMSS.csv)
+   - **DATEV Import**: `.csv` - DATEV-Exporte (klassisch oder Belegexport)
+   - **Belege**: `.pdf` - Rechnungen und Belege (werden in Phase 2 mit AI verarbeitet)
 
 ### API-Endpunkte
 
 **Import einer Datei:**
 ```bash
 curl -X POST "http://localhost:8000/api/imports/file" \
-     -F "file=@bank_export.xml"
+     -F "file=@Konto_1234567_250114_101756.csv"
 ```
 
 **Import-Status abfragen:**
 ```bash
 curl "http://localhost:8000/api/imports/status/{import_id}"
 ```
+
+## Datei-Formate
+
+### Bank CSV Format
+- Semikolon-getrennt (`;`)
+- Spalten:
+  1. Referenznummer
+  2. Buchungsdatum (DD.MM.YYYY)
+  3. Betrag (Deutsches Format: 1.234,56)
+  4. Valutadatum
+  5. Leer/Reserviert
+  6. Partner/Empfänger
+  7. Verwendungszweck
+  8. Kontonummer
+
+### DATEV CSV Format
+- Unterstützt klassische DATEV-Exporte und Belegexporte
+- Automatische Format-Erkennung
+- Verschiedene Encodings werden unterstützt (CP1252, UTF-8, etc.)
 
 ## Datei-Struktur Phase 1
 
@@ -118,7 +138,7 @@ jahresabschluss-system/
 │   │   ├── importers/          # Import-Module
 │   │   │   ├── __init__.py
 │   │   │   ├── base.py
-│   │   │   ├── bank_xml.py
+│   │   │   ├── bank_csv.py    # Bank CSV Importer
 │   │   │   ├── datev.py
 │   │   │   ├── pdf.py
 │   │   │   └── factory.py
@@ -142,7 +162,6 @@ jahresabschluss-system/
 ```bash
 # Stellen Sie sicher, dass Sie im Hauptverzeichnis sind und verwenden:
 python run.py
-# NICHT: python start_phase1.py
 ```
 
 **Datenbankverbindung fehlgeschlagen:**
@@ -158,7 +177,8 @@ python run.py
 
 **Import schlägt fehl:**
 - Prüfen Sie das Dateiformat
-- Bei CSV-Dateien: Stellen Sie sicher, dass "datev" im Dateinamen vorkommt
+- Bei Bank-CSV: Dateiname sollte "Konto" enthalten
+- Bei DATEV-CSV: Beliebiger Name, System erkennt Format automatisch
 - Logs prüfen in der Konsole
 
 **Module nicht gefunden:**
@@ -169,8 +189,8 @@ python run.py
 ## Beispiel-Dateien
 
 Sie können diese Beispiel-Dateien zum Testen verwenden:
-- Bank XML: Die im Anhang bereitgestellte `Konto_3222594_250114_101756.xml`
-- DATEV CSV: Beliebige DATEV-Export-Datei (Dateiname sollte "datev" enthalten)
+- Bank CSV: `Konto_3222594_250114_101756.csv` (Ihre bereitgestellte Datei)
+- DATEV CSV: Beliebige DATEV-Export-Datei
 - PDF: Beliebige Rechnung als PDF
 
 ## Nächste Schritte (Phase 2)

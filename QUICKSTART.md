@@ -42,15 +42,17 @@ python run.py
 
 ## 📁 Unterstützte Dateiformate
 
-### 1. **Bank XML** (GDPdU Format)
-- Dateiendung: `.xml`
-- Beispiel: `Konto_3222594_250114_101756.xml`
-- Wird automatisch mit zugehöriger CSV verarbeitet
+### 1. **Bank CSV**
+- Dateiendung: `.csv`
+- Beispiel: `Konto_3222594_250114_101756.csv`
+- Format: Semikolon-getrennt, 8 Spalten
+- Wird automatisch als Bank-Import erkannt wenn "Konto" im Dateinamen
 
 ### 2. **DATEV CSV**
 - Dateiendung: `.csv`
-- Dateiname muss "datev" enthalten
-- Format: Windows-1252 Encoding
+- Beliebiger Dateiname (ohne "Konto")
+- Format: Windows-1252 oder UTF-8 Encoding
+- Automatische Format-Erkennung (Klassisch oder Belegexport)
 
 ### 3. **PDF Belege**
 - Dateiendung: `.pdf`
@@ -59,10 +61,11 @@ python run.py
 ## 🧪 Test mit Beispieldateien
 
 1. Öffnen Sie http://localhost:8000
-2. Ziehen Sie eine der Beispieldateien in den Upload-Bereich:
-   - Bank XML aus dem Anhang
-   - DATEV CSV Export
-   - PDF Rechnung
+2. Wählen Sie den passenden Tab:
+   - **Bank Import**: Für Kontoauszüge im CSV-Format
+   - **DATEV Import**: Für DATEV-Exporte
+   - **Belege**: Für PDF-Rechnungen
+3. Ziehen Sie eine Datei in den Upload-Bereich oder klicken Sie "Dateien auswählen"
 
 ## 🔍 API Dokumentation
 
@@ -90,7 +93,6 @@ SELECT * FROM imported_transactions LIMIT 10;  -- Importierte Transaktionen
 ```bash
 # Stellen Sie sicher, dass Sie im Hauptverzeichnis sind:
 python run.py
-# NICHT: python src/api/main.py
 ```
 
 ### Datenbankverbindung fehlgeschlagen
@@ -110,6 +112,11 @@ docker-compose ps
 mkdir -p uploads
 chmod 755 uploads
 ```
+
+### Bank-Import wird nicht erkannt
+- Stellen Sie sicher, dass "Konto" im Dateinamen vorkommt
+- Beispiel: `Konto_1234567_250114_101756.csv`
+- Alternative: Verwenden Sie den "Bank Import" Tab
 
 ## 📈 Nächste Schritte (Phase 2)
 

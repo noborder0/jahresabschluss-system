@@ -2,7 +2,7 @@
 
 from typing import Optional
 from .base import BaseImporter
-from .bank_xml import BankXMLImporter
+from .bank_csv import BankCSVImporter
 from .datev import DATEVImporter
 from .pdf import PDFImporter
 
@@ -15,9 +15,9 @@ class ImporterFactory:
     def __init__(self):
         # Order matters - more specific importers first
         self._importers = [
-            BankXMLImporter(),  # Bank XML should be checked before generic XML
+            BankCSVImporter(),  # Bank CSV should be checked before generic CSV
             PDFImporter(),
-            DATEVImporter()  # DATEV handles all CSV files
+            DATEVImporter()  # DATEV handles remaining CSV files
         ]
 
     def get_importer(self, filename: str) -> Optional[BaseImporter]:
@@ -26,9 +26,6 @@ class ImporterFactory:
 
         Returns None if no importer can handle the file
         """
-        # For XML files, we could check content to determine type
-        # For now, BankXMLImporter will handle all XML files
-
         for importer in self._importers:
             if importer.can_handle(filename):
                 return importer
@@ -39,4 +36,4 @@ class ImporterFactory:
         """
         Get list of supported file extensions
         """
-        return ['.xml', '.csv', '.pdf']
+        return ['.csv', '.pdf']

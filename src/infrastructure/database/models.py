@@ -14,7 +14,7 @@ class ImportBatch(Base):
     __tablename__ = "import_batches"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    source_type = Column(String(20), nullable=False)  # BANK_XML, DATEV, PDF
+    source_type = Column(String(20), nullable=False)  # BANK_CSV, DATEV, PDF
     source_file = Column(String(255), nullable=False)
     bank_info = Column(JSON, nullable=True)  # Additional metadata for bank imports
     import_date = Column(DateTime, default=datetime.utcnow)

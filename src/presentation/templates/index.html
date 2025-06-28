@@ -103,6 +103,69 @@
             display: block;
         }
 
+        /* Bank metadata form */
+        .bank-metadata-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .bank-metadata-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #2c3e50;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #4b5563;
+            margin-bottom: 6px;
+        }
+
+        .form-label.required::after {
+            content: '*';
+            color: #ef4444;
+            margin-left: 4px;
+        }
+
+        .form-input {
+            padding: 10px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: #9ca3af;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
         /* Upload zones */
         .upload-zone {
             border: 2px dashed #cbd5e0;
@@ -152,41 +215,57 @@
             display: none;
         }
 
-        /* Bank upload grid */
-        .bank-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .bank-upload-box {
-            border: 2px dashed #cbd5e0;
-            border-radius: 8px;
-            padding: 30px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .bank-upload-box.has-file {
-            border-color: #10b981;
+        /* File preview */
+        .file-preview {
             background: #f0fdf4;
+            border: 1px solid #10b981;
+            border-radius: 6px;
+            padding: 16px;
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        .file-selected {
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-icon-preview {
+            width: 32px;
+            height: 32px;
             color: #10b981;
+        }
+
+        .file-name {
             font-weight: 500;
-            margin-top: 10px;
+            color: #065f46;
         }
 
-        .remove-file {
+        .remove-file-button {
+            background: none;
+            border: none;
             color: #ef4444;
-            font-size: 12px;
             cursor: pointer;
-            margin-top: 5px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s ease;
         }
 
-        .bank-upload-button {
+        .remove-file-button:hover {
+            background: #fee2e2;
+        }
+
+        /* Submit button */
+        .submit-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .submit-button {
             width: 100%;
             padding: 14px;
             background: #10b981;
@@ -199,11 +278,11 @@
             transition: all 0.3s ease;
         }
 
-        .bank-upload-button:hover:not(:disabled) {
+        .submit-button:hover:not(:disabled) {
             background: #059669;
         }
 
-        .bank-upload-button:disabled {
+        .submit-button:disabled {
             background: #cbd5e0;
             cursor: not-allowed;
         }
@@ -270,6 +349,12 @@
         .group-name {
             font-weight: 600;
             color: #2c3e50;
+        }
+
+        .group-subtitle {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 400;
         }
 
         .group-stats {
@@ -376,10 +461,6 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            .bank-grid {
-                grid-template-columns: 1fr;
-            }
-
             .tabs-nav {
                 flex-direction: column;
             }
@@ -393,6 +474,10 @@
                 width: 3px;
                 height: 100%;
                 bottom: 0;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -414,18 +499,18 @@
             <div class="tabs-container">
                 <nav class="tabs-nav">
                     <button
-                        @click="activeTab = 'datev'"
-                        :class="{ 'active': activeTab === 'datev' }"
-                        class="tab-button"
-                    >
-                        DATEV Import
-                    </button>
-                    <button
                         @click="activeTab = 'bank'"
                         :class="{ 'active': activeTab === 'bank' }"
                         class="tab-button"
                     >
                         Bank Import
+                    </button>
+                    <button
+                        @click="activeTab = 'datev'"
+                        :class="{ 'active': activeTab === 'datev' }"
+                        class="tab-button"
+                    >
+                        DATEV Import
                     </button>
                     <button
                         @click="activeTab = 'documents'"
@@ -437,6 +522,122 @@
                 </nav>
 
                 <div class="tab-content">
+                    <!-- Bank Tab -->
+                    <div class="tab-panel" :class="{ 'active': activeTab === 'bank' }">
+                        <h2 style="font-size: 18px; margin-bottom: 10px;">Bank CSV Import</h2>
+                        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                            Laden Sie Ihre Bank-Kontoauszüge im CSV-Format hoch. Geben Sie optional Kontoinformationen zur besseren Identifizierung an.
+                        </p>
+
+                        <!-- Bank Metadata Form -->
+                        <div class="bank-metadata-section">
+                            <h3>Kontoinformationen (optional)</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label" for="accountName">Kontobezeichnung</label>
+                                    <input
+                                        type="text"
+                                        id="accountName"
+                                        x-model="bankMetadata.accountName"
+                                        class="form-input"
+                                        placeholder="z.B. Geschäftskonto Sparkasse"
+                                    >
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="iban">IBAN</label>
+                                        <input
+                                            type="text"
+                                            id="iban"
+                                            x-model="bankMetadata.iban"
+                                            class="form-input"
+                                            placeholder="DE12 3456 7890 1234 5678 90"
+                                            @input="formatIBAN"
+                                        >
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="bic">BIC</label>
+                                        <input
+                                            type="text"
+                                            id="bic"
+                                            x-model="bankMetadata.bic"
+                                            class="form-input"
+                                            placeholder="DEUTDEFF"
+                                            style="text-transform: uppercase;"
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Upload Zone -->
+                        <div
+                            class="upload-zone"
+                            @dragover.prevent="bankDragover = true"
+                            @dragleave.prevent="bankDragover = false"
+                            @drop.prevent="handleBankDrop($event)"
+                            :class="{ 'dragover': bankDragover }"
+                        >
+                            <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                            </svg>
+
+                            <input type="file" id="bankInput" @change="handleBankSelect($event)" accept=".csv" multiple>
+
+                            <p style="color: #666; margin-bottom: 16px;">Bank-CSV Dateien hierher ziehen oder</p>
+                            <label for="bankInput" class="upload-button">
+                                Dateien auswählen
+                            </label>
+
+                            <p style="font-size: 12px; color: #999; margin-top: 16px;">
+                                Unterstützte Formate: .csv (Bank-Kontoauszug)<br>
+                                Mehrere Dateien können gleichzeitig hochgeladen werden
+                            </p>
+                        </div>
+
+                        <!-- File Preview -->
+                        <template x-if="bankFiles.length > 0">
+                            <div style="margin-top: 20px;">
+                                <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Ausgewählte Dateien:</h4>
+                                <template x-for="(file, index) in bankFiles" :key="index">
+                                    <div class="file-preview">
+                                        <div class="file-info">
+                                            <svg class="file-icon-preview" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                            <div>
+                                                <div class="file-name" x-text="file.name"></div>
+                                                <div style="font-size: 12px; color: #6b7280;" x-text="`${(file.size / 1024).toFixed(1)} KB`"></div>
+                                            </div>
+                                        </div>
+                                        <button @click="removeBankFile(index)" class="remove-file-button">
+                                            ✕ Entfernen
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- Submit Section -->
+                        <template x-if="bankFiles.length > 0">
+                            <div class="submit-section">
+                                <button
+                                    @click="uploadBankFiles()"
+                                    :disabled="bankUploading || bankFiles.length === 0"
+                                    class="submit-button"
+                                >
+                                    <span x-show="!bankUploading">
+                                        <span x-text="`${bankFiles.length} Datei${bankFiles.length > 1 ? 'en' : ''} importieren`"></span>
+                                    </span>
+                                    <span x-show="bankUploading">
+                                        <span class="spinner"></span>
+                                        Wird importiert...
+                                    </span>
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+
                     <!-- DATEV Tab -->
                     <div class="tab-panel" :class="{ 'active': activeTab === 'datev' }">
                         <h2 style="font-size: 18px; margin-bottom: 10px;">DATEV CSV Import</h2>
@@ -455,93 +656,15 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                             </svg>
 
-                            <input type="file" id="datevInput" @change="handleDatevSelect($event)" accept=".csv" class="hidden">
+                            <input type="file" id="datevInput" @change="handleDatevSelect($event)" accept=".csv" multiple>
 
-                            <p style="color: #666; margin-bottom: 16px;">CSV-Datei hierher ziehen oder</p>
+                            <p style="color: #666; margin-bottom: 16px;">CSV-Dateien hierher ziehen oder</p>
                             <label for="datevInput" class="upload-button">
-                                Datei auswählen
+                                Dateien auswählen
                             </label>
 
                             <p style="font-size: 12px; color: #999; margin-top: 16px;">Unterstützte Formate: .csv (DATEV-Export)</p>
                         </div>
-                    </div>
-
-                    <!-- Bank Tab -->
-                    <div class="tab-panel" :class="{ 'active': activeTab === 'bank' }">
-                        <h2 style="font-size: 18px; margin-bottom: 10px;">Bank XML/CSV Import</h2>
-                        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-                            Für Bank-Importe werden beide Dateien benötigt: Die XML-Datei (Schema) und die zugehörige CSV-Datei (Daten).
-                        </p>
-
-                        <div class="bank-grid">
-                            <!-- XML Upload -->
-                            <div class="bank-upload-box" :class="{ 'has-file': bankFiles.xml }">
-                                <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 16px;">1. XML-Datei (Schema)</h3>
-
-                                <input type="file" id="bankXmlInput" @change="handleBankXmlSelect($event)" accept=".xml">
-
-                                <template x-if="!bankFiles.xml">
-                                    <div>
-                                        <svg class="upload-icon" style="width: 36px; height: 36px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                        <label for="bankXmlInput" class="upload-button" style="padding: 8px 16px; font-size: 14px;">
-                                            XML auswählen
-                                        </label>
-                                    </div>
-                                </template>
-
-                                <template x-if="bankFiles.xml">
-                                    <div>
-                                        <svg style="width: 36px; height: 36px; color: #10b981; margin: 0 auto 8px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        <p class="file-selected" x-text="bankFiles.xml.name"></p>
-                                        <p class="remove-file" @click="bankFiles.xml = null">Entfernen</p>
-                                    </div>
-                                </template>
-                            </div>
-
-                            <!-- CSV Upload -->
-                            <div class="bank-upload-box" :class="{ 'has-file': bankFiles.csv }">
-                                <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 16px;">2. CSV-Datei (Daten)</h3>
-
-                                <input type="file" id="bankCsvInput" @change="handleBankCsvSelect($event)" accept=".csv">
-
-                                <template x-if="!bankFiles.csv">
-                                    <div>
-                                        <svg class="upload-icon" style="width: 36px; height: 36px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                        <label for="bankCsvInput" class="upload-button" style="padding: 8px 16px; font-size: 14px;">
-                                            CSV auswählen
-                                        </label>
-                                    </div>
-                                </template>
-
-                                <template x-if="bankFiles.csv">
-                                    <div>
-                                        <svg style="width: 36px; height: 36px; color: #10b981; margin: 0 auto 8px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        <p class="file-selected" x-text="bankFiles.csv.name"></p>
-                                        <p class="remove-file" @click="bankFiles.csv = null">Entfernen</p>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-
-                        <button
-                            @click="uploadBankFiles()"
-                            :disabled="!bankFiles.xml || !bankFiles.csv || bankUploading"
-                            class="bank-upload-button"
-                        >
-                            <span x-show="!bankUploading">Bank-Import starten</span>
-                            <span x-show="bankUploading">
-                                <span class="spinner"></span>
-                                Wird importiert...
-                            </span>
-                        </button>
                     </div>
 
                     <!-- Documents Tab -->
@@ -599,7 +722,10 @@
                             <template x-for="group in groupedImports" :key="group.name">
                                 <div class="history-group">
                                     <div class="group-header">
-                                        <span class="group-name" x-text="group.name"></span>
+                                        <div>
+                                            <div class="group-name" x-text="group.name"></div>
+                                            <div class="group-subtitle" x-text="group.subtitle"></div>
+                                        </div>
                                         <span class="group-stats" x-text="`${group.totalTransactions} Transaktionen`"></span>
                                     </div>
 
@@ -635,17 +761,20 @@
     <script>
         function jahresabschlussApp() {
             return {
-                activeTab: 'datev',
+                activeTab: 'bank',
                 error: null,
 
                 // Drag states
+                bankDragover: false,
                 datevDragover: false,
                 pdfDragover: false,
 
-                // Bank files
-                bankFiles: {
-                    xml: null,
-                    csv: null
+                // Bank files and metadata
+                bankFiles: [],
+                bankMetadata: {
+                    accountName: '',
+                    iban: '',
+                    bic: ''
                 },
                 bankUploading: false,
 
@@ -657,30 +786,175 @@
                     const groups = {};
 
                     this.imports.forEach(imp => {
-                        const groupName = this.getGroupName(imp);
-                        if (!groups[groupName]) {
-                            groups[groupName] = {
-                                name: groupName,
+                        const groupKey = this.getGroupKey(imp);
+                        const groupInfo = this.getGroupInfo(imp);
+
+                        if (!groups[groupKey]) {
+                            groups[groupKey] = {
+                                key: groupKey,
+                                name: groupInfo.name,
+                                subtitle: groupInfo.subtitle,
                                 imports: [],
                                 totalTransactions: 0
                             };
                         }
-                        groups[groupName].imports.push(imp);
-                        groups[groupName].totalTransactions += imp.transactionCount || 0;
+                        groups[groupKey].imports.push(imp);
+                        groups[groupKey].totalTransactions += imp.transactionCount || 0;
                     });
 
                     return Object.values(groups).sort((a, b) => b.imports[0].importDate - a.imports[0].importDate);
                 },
 
-                getGroupName(imp) {
-                    if (imp.sourceType === 'BANK_XML' && imp.bankInfo) {
-                        return `Bank: ${imp.bankInfo.name || 'Unbekannt'}`;
+                getGroupKey(imp) {
+                    if (imp.sourceType === 'BANK_CSV' && imp.bankInfo) {
+                        // Group by account name or account number
+                        return imp.bankInfo.account_name || imp.bankInfo.account_number || 'bank_unknown';
                     } else if (imp.sourceType === 'DATEV') {
-                        return 'DATEV Exporte';
+                        return 'datev';
                     } else if (imp.sourceType === 'PDF') {
-                        return 'PDF Belege';
+                        return 'pdf';
                     }
-                    return 'Sonstige';
+                    return 'other';
+                },
+
+                getGroupInfo(imp) {
+                    if (imp.sourceType === 'BANK_CSV' && imp.bankInfo) {
+                        const name = imp.bankInfo.account_name || `Konto ${imp.bankInfo.account_number || 'Unbekannt'}`;
+                        let subtitle = '';
+
+                        if (imp.bankInfo.iban) {
+                            subtitle = `IBAN: ${this.formatIBANDisplay(imp.bankInfo.iban)}`;
+                            if (imp.bankInfo.bic) {
+                                subtitle += ` • BIC: ${imp.bankInfo.bic}`;
+                            }
+                        }
+
+                        return { name, subtitle };
+                    } else if (imp.sourceType === 'DATEV') {
+                        return { name: 'DATEV Exporte', subtitle: '' };
+                    } else if (imp.sourceType === 'PDF') {
+                        return { name: 'PDF Belege', subtitle: '' };
+                    }
+                    return { name: 'Sonstige', subtitle: '' };
+                },
+
+                // Format IBAN for display
+                formatIBANDisplay(iban) {
+                    if (!iban) return '';
+                    // Remove spaces and format as DE12 3456 7890 1234 5678 90
+                    const cleaned = iban.replace(/\s/g, '');
+                    return cleaned.match(/.{1,4}/g).join(' ');
+                },
+
+                // Format IBAN input
+                formatIBAN(event) {
+                    let value = event.target.value.replace(/\s/g, '');
+                    let formatted = value.match(/.{1,4}/g)?.join(' ') || value;
+                    this.bankMetadata.iban = formatted;
+                },
+
+                // Bank handlers
+                handleBankDrop(event) {
+                    this.bankDragover = false;
+                    const files = Array.from(event.dataTransfer.files);
+                    this.addBankFiles(files);
+                },
+
+                handleBankSelect(event) {
+                    const files = Array.from(event.target.files);
+                    this.addBankFiles(files);
+                },
+
+                addBankFiles(files) {
+                    // Filter only CSV files
+                    const csvFiles = files.filter(file => file.name.toLowerCase().endsWith('.csv'));
+                    this.bankFiles = [...this.bankFiles, ...csvFiles];
+                },
+
+                removeBankFile(index) {
+                    this.bankFiles.splice(index, 1);
+                },
+
+                async uploadBankFiles() {
+                    if (this.bankFiles.length === 0) return;
+
+                    this.bankUploading = true;
+                    this.error = null;
+
+                    for (const file of this.bankFiles) {
+                        await this.uploadBankFile(file);
+                    }
+
+                    // Clear files and metadata after successful upload
+                    this.bankFiles = [];
+                    this.bankMetadata = {
+                        accountName: '',
+                        iban: '',
+                        bic: ''
+                    };
+
+                    this.bankUploading = false;
+                },
+
+                async uploadBankFile(file) {
+                    const importEntry = {
+                        id: Date.now() + Math.random(),
+                        filename: file.name,
+                        sourceType: 'BANK_CSV',
+                        status: 'pending',
+                        importDate: new Date(),
+                        transactionCount: 0
+                    };
+
+                    this.imports.unshift(importEntry);
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+
+                        // Add metadata if provided
+                        if (this.bankMetadata.accountName) {
+                            formData.append('account_name', this.bankMetadata.accountName);
+                        }
+                        if (this.bankMetadata.iban) {
+                            formData.append('iban', this.bankMetadata.iban.replace(/\s/g, ''));
+                        }
+                        if (this.bankMetadata.bic) {
+                            formData.append('bic', this.bankMetadata.bic.toUpperCase());
+                        }
+
+                        const response = await fetch('/api/imports/file', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const result = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(result.detail || 'Upload fehlgeschlagen');
+                        }
+
+                        // Update import entry
+                        const index = this.imports.findIndex(i => i.id === importEntry.id);
+                        if (index !== -1) {
+                            this.imports[index] = {
+                                ...this.imports[index],
+                                status: 'success',
+                                transactionCount: result.transaction_count || 0,
+                                importId: result.import_id,
+                                bankInfo: result.bank_info
+                            };
+                        }
+
+                        this.error = null;
+
+                    } catch (error) {
+                        const index = this.imports.findIndex(i => i.id === importEntry.id);
+                        if (index !== -1) {
+                            this.imports[index].status = 'error';
+                        }
+                        this.error = error.message;
+                    }
                 },
 
                 // DATEV handlers
@@ -693,70 +967,6 @@
                 handleDatevSelect(event) {
                     const files = Array.from(event.target.files);
                     this.uploadFiles(files, 'datev');
-                },
-
-                // Bank handlers
-                handleBankXmlSelect(event) {
-                    const file = event.target.files[0];
-                    if (file) {
-                        this.bankFiles.xml = file;
-                    }
-                },
-
-                handleBankCsvSelect(event) {
-                    const file = event.target.files[0];
-                    if (file) {
-                        this.bankFiles.csv = file;
-                    }
-                },
-
-                async uploadBankFiles() {
-                    if (!this.bankFiles.xml || !this.bankFiles.csv) return;
-
-                    this.bankUploading = true;
-                    this.error = null;
-
-                    try {
-                        // Upload both files together in a single request
-                        const formData = new FormData();
-                        formData.append('xml_file', this.bankFiles.xml);
-                        formData.append('csv_file', this.bankFiles.csv);
-
-                        const response = await fetch('/api/imports/bank', {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        const result = await response.json();
-
-                        if (!response.ok) {
-                            throw new Error(result.detail || 'Bank-Import fehlgeschlagen');
-                        }
-
-                        // Add to import history
-                        const importEntry = {
-                            id: Date.now() + Math.random(),
-                            filename: this.bankFiles.xml.name,
-                            sourceType: 'BANK_XML',
-                            status: 'success',
-                            importDate: new Date(),
-                            transactionCount: result.transaction_count || 0,
-                            importId: result.import_id,
-                            bankInfo: result.bank_info
-                        };
-
-                        this.imports.unshift(importEntry);
-
-                        // Clear files
-                        this.bankFiles = { xml: null, csv: null };
-                        this.error = null;
-
-                    } catch (error) {
-                        this.error = error.message;
-                        console.error('Bank upload error:', error);
-                    } finally {
-                        this.bankUploading = false;
-                    }
                 },
 
                 // PDF handlers
@@ -829,9 +1039,7 @@
                 },
 
                 getSourceType(file, type) {
-                    if (type === 'bank' && file.name.toLowerCase().endsWith('.xml')) {
-                        return 'BANK_XML';
-                    } else if (type === 'datev' || file.name.toLowerCase().endsWith('.csv')) {
+                    if (type === 'datev' || file.name.toLowerCase().endsWith('.csv')) {
                         return 'DATEV';
                     } else if (file.name.toLowerCase().endsWith('.pdf')) {
                         return 'PDF';
@@ -841,7 +1049,7 @@
 
                 getFileIcon(sourceType) {
                     const icons = {
-                        'BANK_XML': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>',
+                        'BANK_CSV': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>',
                         'DATEV': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>',
                         'PDF': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>'
                     };

@@ -5,7 +5,7 @@ import os
 import tempfile
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from pathlib import Path
 from sqlalchemy.orm import Session
 from .base import BaseImporter
@@ -18,12 +18,22 @@ class DATEVImporter(BaseImporter):
     """
 
     def can_handle(self, filename: str) -> bool:
-        # Accept any CSV file - we'll detect the format later
-        return filename.lower().endswith('.csv')
+        # Only handle CSV files that are NOT bank exports
+        if not filename.lower().endswith('.csv'):
+            return False
 
-    async def import_file(self, file_path: str, db: Session) -> Dict[str, Any]:
+        # Don't handle bank CSV files (those with "Konto" in name)
+        if 'konto' in filename.lower():
+            return False
+
+        # Handle all other CSV files as potential DATEV exports
+        return True
+
+    async def import_file(self, file_path: str, db: Session, metadata: Optional[Dict[str, Any]] = None) -> Dict[
+        str, Any]:
         """
         Import DATEV CSV file - auto-detects format
+        Note: metadata parameter is included for interface compatibility but not used for DATEV imports
         """
         try:
             # Detect CSV format

@@ -1,7 +1,7 @@
 # src/infrastructure/importers/pdf.py
 
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
 from .base import BaseImporter
@@ -16,9 +16,10 @@ class PDFImporter(BaseImporter):
     def can_handle(self, filename: str) -> bool:
         return filename.lower().endswith('.pdf')
 
-    async def import_file(self, file_path: str, db: Session) -> Dict[str, Any]:
+    async def import_file(self, file_path: str, db: Session, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Import PDF file - stores as document for later processing
+        Note: metadata parameter is included for interface compatibility but not used for PDF imports
         """
         # Read PDF file
         with open(file_path, 'rb') as f:

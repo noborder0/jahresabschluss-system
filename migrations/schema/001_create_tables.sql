@@ -7,7 +7,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Import batches table
 CREATE TABLE import_batches (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    source_type VARCHAR(20) NOT NULL CHECK (source_type IN ('BANK_XML', 'DATEV', 'PDF')),
+    source_type VARCHAR(20) NOT NULL CHECK (source_type IN ('BANK_CSV', 'DATEV', 'PDF')),
     source_file VARCHAR(255) NOT NULL,
     bank_info JSONB,
     import_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP

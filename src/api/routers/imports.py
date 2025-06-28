@@ -1,7 +1,7 @@
 # src/api/routers/imports.py
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
-from typing import Dict, Any
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
+from typing import Dict, Any, Optional
 import os
 import uuid
 import traceback
@@ -14,84 +14,22 @@ from sqlalchemy.orm import Session
 router = APIRouter()
 
 
-@router.post("/bank")
-async def import_bank_files(
-        xml_file: UploadFile = File(...),
-        csv_file: UploadFile = File(...),
-        db: Session = Depends(get_db)
-) -> Dict[str, Any]:
-    """
-    Import bank files (XML and CSV together)
-    """
-    # Validate files
-    if not xml_file.filename.lower().endswith('.xml'):
-        raise HTTPException(400, "First file must be XML")
-    if not csv_file.filename.lower().endswith('.csv'):
-        raise HTTPException(400, "Second file must be CSV")
-
-    # Create temporary directory for this import
-    import_id = str(uuid.uuid4())
-    import_dir = os.path.join(settings.upload_path, import_id)
-    os.makedirs(import_dir, exist_ok=True)
-
-    try:
-        # Save both files to the same directory
-        xml_path = os.path.join(import_dir, xml_file.filename)
-        csv_path = os.path.join(import_dir, csv_file.filename)
-
-        # Save XML
-        xml_contents = await xml_file.read()
-        with open(xml_path, "wb") as f:
-            f.write(xml_contents)
-
-        # Save CSV
-        csv_contents = await csv_file.read()
-        with open(csv_path, "wb") as f:
-            f.write(csv_contents)
-
-        print(f"Saved bank files to {import_dir}")
-        print(f"XML: {xml_path} ({len(xml_contents)} bytes)")
-        print(f"CSV: {csv_path} ({len(csv_contents)} bytes)")
-
-        # Import using BankXMLImporter
-        from src.infrastructure.importers.bank_xml import BankXMLImporter
-        importer = BankXMLImporter()
-
-        result = await importer.import_file(xml_path, db)
-
-        return {
-            "status": "success",
-            "filename": xml_file.filename,
-            "import_id": result.get("import_id"),
-            "transaction_count": result.get("transaction_count", 0),
-            "source_type": "BANK_XML",
-            "bank_info": result.get("bank_info"),
-            "preview": result.get("transactions", [])[:3]
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Bank import error: {e}")
-        print(traceback.format_exc())
-        raise HTTPException(500, f"Bank import failed: {str(e)}")
-    finally:
-        # Clean up temporary directory
-        try:
-            import shutil
-            if os.path.exists(import_dir):
-                shutil.rmtree(import_dir)
-        except:
-            pass
-
-
 @router.post("/file")
 async def import_file(
         file: UploadFile = File(...),
+        account_name: Optional[str] = Form(None),
+        iban: Optional[str] = Form(None),
+        bic: Optional[str] = Form(None),
         db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    Import a file (XML, CSV, or PDF)
+    Import a file (CSV or PDF)
+    The system automatically detects if it's a bank CSV, DATEV CSV, or PDF
+
+    For bank imports, optional metadata can be provided:
+    - account_name: Friendly name for the account
+    - iban: International Bank Account Number
+    - bic: Bank Identifier Code
     """
     # Validate file
     if not file.filename:
@@ -126,9 +64,24 @@ async def import_file(
         if not importer:
             raise HTTPException(400, f"Unsupported file type: {file.filename}")
 
+        # Log which importer is being used
+        importer_type = type(importer).__name__
+        print(f"Using importer: {importer_type} for file: {file.filename}")
+
         # Process import
         try:
-            result = await importer.import_file(temp_path, db)
+            # For bank imports, pass the metadata
+            if importer_type == 'BankCSVImporter' and any([account_name, iban, bic]):
+                metadata = {
+                    'account_name': account_name,
+                    'iban': iban,
+                    'bic': bic
+                }
+                print(f"Bank import with metadata: {metadata}")
+                result = await importer.import_file(temp_path, db, metadata=metadata)
+            else:
+                result = await importer.import_file(temp_path, db)
+
         except Exception as e:
             # Log the full error for debugging
             print(f"Import error for {file.filename}:")
@@ -140,9 +93,6 @@ async def import_file(
                 raise HTTPException(500, "File encoding error. Please ensure the file is in the correct format.")
             elif "parse" in error_msg.lower():
                 raise HTTPException(500, "File parsing error. The file format may not be supported.")
-            elif "CSV file not found" in error_msg:
-                raise HTTPException(400,
-                                    "Bank XML import requires the associated CSV file. Please upload both files together.")
             else:
                 raise HTTPException(500, f"Import failed: {error_msg}")
 
