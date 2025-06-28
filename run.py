@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Fixed startup script for Phase 1 of the Jahresabschluss-System
+Startup script for Jahresabschluss-System Phase 1 & 2
 """
 
 import os
@@ -15,12 +15,23 @@ class Colors:
     RED = '\033[91m'
     YELLOW = '\033[93m'
     BLUE = '\033[94m'
+    CYAN = '\033[96m'
     END = '\033[0m'
 
 
 def print_colored(message, color=Colors.GREEN):
     """Print colored message"""
     print(f"{color}{message}{Colors.END}")
+
+
+def print_banner():
+    """Print application banner"""
+    print_colored("""
+    ╔═══════════════════════════════════════════╗
+    ║   Jahresabschluss-System mit AI          ║
+    ║   Phase 1 & 2 - Import + AI Processing   ║
+    ╚═══════════════════════════════════════════╝
+    """, Colors.CYAN)
 
 
 def setup_environment():
@@ -59,6 +70,57 @@ def check_database_connection():
         return False
 
 
+def check_redis_connection():
+    """Check if Redis is available"""
+    redis_url = os.getenv('REDIS_URL')
+    if not redis_url:
+        print_colored("ℹ Redis not configured (optional)", Colors.YELLOW)
+        return False
+
+    try:
+        import redis
+        r = redis.from_url(redis_url)
+        r.ping()
+        print_colored("✓ Redis connection successful", Colors.GREEN)
+        return True
+    except ImportError:
+        print_colored("ℹ Redis package not installed", Colors.YELLOW)
+        return False
+    except Exception as e:
+        print_colored(f"ℹ Redis connection failed (optional): {e}", Colors.YELLOW)
+        return False
+
+
+def check_ai_services():
+    """Check AI services availability"""
+    from src.core.config import settings
+
+    ai_status = {
+        'azure': False,
+        'claude': False
+    }
+
+    # Check Azure
+    if settings.azure_form_recognizer_endpoint and settings.azure_form_recognizer_key:
+        ai_status['azure'] = True
+        print_colored("✓ Azure Document Intelligence configured", Colors.GREEN)
+    else:
+        print_colored("ℹ Azure Document Intelligence not configured", Colors.YELLOW)
+
+    # Check Claude
+    if settings.anthropic_api_key:
+        ai_status['claude'] = True
+        print_colored("✓ Claude API configured", Colors.GREEN)
+    else:
+        print_colored("ℹ Claude API not configured", Colors.YELLOW)
+
+    if not ai_status['azure'] and not ai_status['claude']:
+        print_colored("\n⚠️  No AI services configured. System will run without AI features.", Colors.YELLOW)
+        print_colored("   Add API keys to .env to enable AI processing.", Colors.YELLOW)
+
+    return ai_status
+
+
 def initialize_database_if_needed():
     """Initialize database if tables don't exist"""
     try:
@@ -83,13 +145,20 @@ def initialize_database_if_needed():
         return False
 
 
+def print_startup_info(ai_status):
+    """Print startup information"""
+    print_colored("\n=== Server Starting ===", Colors.BLUE)
+    print(f"\n{Colors.GREEN}Web Interface:{Colors.END} http://localhost:8000")
+    print(f"{Colors.GREEN}API Documentation:{Colors.END} http://localhost:8000/docs")
+
+    if ai_status['azure'] or ai_status['claude']:
+        print(f"{Colors.GREEN}AI Processing:{Colors.END} http://localhost:8000/api/ai/stats")
+
+    print(f"\n{Colors.YELLOW}Press CTRL+C to stop the server{Colors.END}\n")
+
+
 def start_server():
     """Start the FastAPI server"""
-    print_colored("\n=== Starting Jahresabschluss-System Phase 1 ===", Colors.BLUE)
-    print(f"Web Interface: {Colors.GREEN}http://localhost:8000{Colors.END}")
-    print(f"API Documentation: {Colors.GREEN}http://localhost:8000/docs{Colors.END}")
-    print(f"\nPress {Colors.YELLOW}CTRL+C{Colors.END} to stop the server\n")
-
     try:
         # Run uvicorn
         subprocess.run([
@@ -107,10 +176,13 @@ def start_server():
 
 def main():
     """Main entry point"""
+    # Print banner
+    print_banner()
+
     # Setup environment
     project_root = setup_environment()
 
-    print_colored("=== Jahresabschluss-System Startup ===", Colors.BLUE)
+    print_colored("Starting system checks...", Colors.BLUE)
 
     # Check database connection
     if not check_database_connection():
@@ -120,11 +192,20 @@ def main():
         if not initialize_database_if_needed():
             print_colored("\nPlease check your .env file and ensure PostgreSQL is running", Colors.RED)
             print("\nYour .env should contain:")
-            print("DATABASE_URL=postgresql://noborder@localhost/jahresabschluss")
+            print("DATABASE_URL=postgresql://user:pass@localhost/jahresabschluss")
             sys.exit(1)
     else:
         # Database accessible, ensure tables exist
         initialize_database_if_needed()
+
+    # Check Redis (optional)
+    check_redis_connection()
+
+    # Check AI services
+    ai_status = check_ai_services()
+
+    # Print startup info
+    print_startup_info(ai_status)
 
     # Start server
     start_server()

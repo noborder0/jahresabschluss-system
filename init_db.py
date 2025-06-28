@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Initialize the database for Phase 1
+Initialize the database for Phase 1 & 2
 Place this in the project root directory
 """
 
@@ -91,7 +91,7 @@ def update_existing_constraints():
                     CHECK (source_type IN ('BANK_CSV', 'DATEV', 'PDF', 'PAYPAL', 'STRIPE', 'MOLLIE'))
                 """)
 
-                print("✓ Constraint updated to include PayPal, Stripe and Mollie")
+                print("✓ Constraint updated to include all payment providers")
             else:
                 # Add the constraint if it doesn't exist
                 conn.exec_driver_sql("""
@@ -108,8 +108,87 @@ def update_existing_constraints():
         print("This is normal for a fresh installation")
 
 
+def run_migrations():
+    """Run SQL migration files in order"""
+    migrations_dir = os.path.join(project_root, 'migrations', 'schema')
+
+    if not os.path.exists(migrations_dir):
+        print(f"Warning: Migrations directory not found: {migrations_dir}")
+        return
+
+    # Get all SQL files sorted by name
+    sql_files = sorted([f for f in os.listdir(migrations_dir) if f.endswith('.sql')])
+
+    if not sql_files:
+        print("No migration files found")
+        return
+
+    print(f"\nRunning {len(sql_files)} migration files...")
+
+    with engine.connect() as conn:
+        for sql_file in sql_files:
+            print(f"  Running {sql_file}...")
+            file_path = os.path.join(migrations_dir, sql_file)
+
+            try:
+                with open(file_path, 'r') as f:
+                    sql_content = f.read()
+
+                    # Split into individual statements
+                    statements = sql_content.split(';')
+
+                    for statement in statements:
+                        statement = statement.strip()
+                        if statement and not statement.startswith('--'):
+                            try:
+                                conn.exec_driver_sql(statement + ';')
+                            except Exception as e:
+                                # Ignore errors for existing objects
+                                if 'already exists' not in str(e) and 'duplicate key' not in str(e):
+                                    print(f"    Warning in {sql_file}: {e}")
+
+                print(f"    ✓ {sql_file} completed")
+                conn.commit()
+
+            except Exception as e:
+                print(f"    ✗ Error in {sql_file}: {e}")
+                raise
+
+
+def check_ai_services():
+    """Check if AI services are properly configured"""
+    print("\n=== AI Services Configuration ===")
+
+    # Check Azure
+    if settings.azure_form_recognizer_endpoint and settings.azure_form_recognizer_key:
+        print("✓ Azure Document Intelligence configured")
+        print(f"  Endpoint: {settings.azure_form_recognizer_endpoint}")
+        print(f"  Using prebuilt model: {settings.azure_use_prebuilt_model}")
+    else:
+        print("✗ Azure Document Intelligence not configured")
+        print("  Set AZURE_FORM_RECOGNIZER_ENDPOINT and AZURE_FORM_RECOGNIZER_KEY in .env")
+
+    # Check Claude
+    if settings.anthropic_api_key:
+        print("✓ Claude API configured")
+        print(f"  Model: {settings.claude_model}")
+        print(f"  Max tokens: {settings.claude_max_tokens}")
+    else:
+        print("✗ Claude API not configured")
+        print("  Set ANTHROPIC_API_KEY in .env")
+
+    # Check Redis
+    redis_url = os.getenv('REDIS_URL')
+    if redis_url:
+        print("✓ Redis configured for caching")
+        print(f"  URL: {redis_url}")
+    else:
+        print("ℹ Redis not configured (optional)")
+        print("  Set REDIS_URL in .env for better performance")
+
+
 def init_database():
-    """Initialize all database tables"""
+    """Initialize all database tables and run migrations"""
     print("=== Database Initialization ===")
 
     # Try to create database first
@@ -128,29 +207,8 @@ def init_database():
         # Update constraints for existing installations
         update_existing_constraints()
 
-        # Run SQL initialization script if exists
-        sql_file = os.path.join(project_root, 'migrations/schema/001_create_tables.sql')
-        if os.path.exists(sql_file):
-            print("\nRunning SQL initialization script...")
-            with engine.connect() as conn:
-                with open(sql_file, 'r') as f:
-                    sql_content = f.read()
-
-                    # Split into individual statements (simple approach)
-                    statements = sql_content.split(';')
-
-                    for statement in statements:
-                        statement = statement.strip()
-                        if statement and not statement.startswith('--'):
-                            try:
-                                conn.exec_driver_sql(statement + ';')
-                            except Exception as e:
-                                # Ignore errors for existing objects
-                                if 'already exists' not in str(e):
-                                    print(f"Warning: {e}")
-
-                    conn.commit()
-            print("✓ SQL initialization completed")
+        # Run migration files
+        run_migrations()
 
     except Exception as e:
         print(f"✗ Database initialization failed: {e}")
@@ -159,9 +217,18 @@ def init_database():
 
 if __name__ == "__main__":
     try:
+        print("=== Jahresabschluss-System Phase 1 & 2 ===")
+
+        # Initialize database
         init_database()
-        print("\n✓ Database initialization completed successfully!")
-        print("You can now run the application with: python run.py")
+
+        # Check AI services
+        check_ai_services()
+
+        print("\n✓ Initialization completed successfully!")
+        print("\nYou can now run the application with: python run.py")
+        print("Or with Docker: docker-compose up")
+
     except Exception as e:
         print(f"\n✗ Error: {e}")
         sys.exit(1)

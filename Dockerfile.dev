@@ -1,27 +1,29 @@
-# Dockerfile.dev
-# Development Dockerfile for Phase 1
-
 FROM python:3.11-slim
 
-WORKDIR /app
-
-# Install system dependencies
+# System dependencies for AI Services
 RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    tesseract-ocr \
+    tesseract-ocr-deu \
+    poppler-utils \
     gcc \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
+WORKDIR /app
+
+# Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Application code
 COPY src/ ./src/
 COPY migrations/ ./migrations/
-
-# Copy startup scripts
-COPY run.py ./
-COPY init_db.py ./
 
 # Create upload directory
 RUN mkdir -p /app/uploads
@@ -31,5 +33,4 @@ ENV PYTHONPATH=/app
 
 EXPOSE 8000
 
-# Default command (can be overridden in docker-compose)
-CMD ["python", "run.py"]
+CMD ["python", "-m", "uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

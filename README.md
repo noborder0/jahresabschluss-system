@@ -1,298 +1,245 @@
-# Jahresabschluss-System - Phase 1
+# Jahresabschluss-System mit AI - Phase 1 & 2
 
-## Übersicht
-Phase 1 implementiert die grundlegende Import-Funktionalität für:
-- Bank CSV-Dateien (Kontoauszüge deutscher Banken)
-- PayPal CSV-Exporte
-- Stripe CSV-Exporte
-- Mollie CSV-Exporte
-- DATEV CSV-Dateien
-- PDF-Dokumente und Bilddateien (JPEG, PNG) für spätere AI-Verarbeitung
+Ein intelligentes System für die Automatisierung von Jahresabschlüssen mit KI-Unterstützung.
 
-## Installation
+## 🌟 Features
 
-1. **Voraussetzungen**
-   - Python 3.11+
-   - PostgreSQL 15+
+### Phase 1 - Basis Import-System ✅
+- **Multi-Format Import**: Bank CSV, PayPal, Stripe, Mollie, DATEV
+- **Dokumenten-Upload**: PDF, JPEG, PNG für spätere Verarbeitung
+- **Transaktions-Management**: Verwaltung und Überprüfung importierter Transaktionen
+- **Web-Interface**: Benutzerfreundliche Oberfläche mit Alpine.js
 
-2. **Setup**
-   ```bash
-   # Repository klonen (falls noch nicht geschehen)
-   git clone <your-repo-url>
-   cd jahresabschluss-system
+### Phase 2 - AI Integration ✅
+- **Automatische Dokumentenextraktion**: Azure Document Intelligence für PDFs/Bilder
+- **Intelligente Kontierung**: Claude AI generiert SKR04-konforme Buchungsvorschläge
+- **Smart Matching**: Automatische Zuordnung von Dokumenten zu Transaktionen
+- **Auto-Booking**: Automatische Buchung bei hoher Konfidenz (>80%)
 
-   # Virtuelle Umgebung erstellen
-   python -m venv venv
-   
-   # Aktivieren:
-   # Mac/Linux:
-   source venv/bin/activate
-   # Windows:
-   venv\Scripts\activate
+## 🚀 Quick Start
 
-   # Dependencies installieren
-   pip install -r requirements.txt
-
-   # .env Datei erstellen und anpassen
-   cp .env.example .env
-   ```
-
-3. **Datenbank Setup**
-   ```bash
-   # PostgreSQL Datenbank erstellen
-   createdb jahresabschluss
-   
-   # Oder mit psql:
-   psql -U postgres -c "CREATE DATABASE jahresabschluss;"
-
-   # .env anpassen mit Ihrer Datenbank-URL:
-   # DATABASE_URL=postgresql://username:password@localhost:5432/jahresabschluss
-   ```
-
-4. **Datenbank initialisieren**
-   ```bash
-   # Option 1: Mit Python Script
-   python init_db.py
-
-   # Option 2: Mit SQL direkt
-   psql -d jahresabschluss -f migrations/schema/001_create_tables.sql
-   ```
-
-## Start
+### Option 1: Docker (Empfohlen)
 
 ```bash
-# Server starten
-python run.py
+# 1. Repository klonen
+git clone <your-repo-url>
+cd jahresabschluss-system
 
-# Alternative: Direkt mit uvicorn
-PYTHONPATH=. uvicorn src.api.main:app --reload
+# 2. Environment konfigurieren
+cp .env.example .env
+# Bearbeiten Sie .env und fügen Sie Ihre API Keys ein
+
+# 3. Docker Container starten
+docker-compose up -d
+
+# 4. Öffnen Sie http://localhost:8000
 ```
 
-Die Anwendung ist dann verfügbar unter:
-- Web-UI: http://localhost:8000
-- API-Docs: http://localhost:8000/docs
+### Option 2: Lokale Installation
 
-## Verwendung
-
-### Web-Interface
-1. Öffnen Sie http://localhost:8000
-2. Wählen Sie den entsprechenden Tab für Ihren Import-Typ
-3. Ziehen Sie Dateien in den Upload-Bereich oder klicken Sie auf "Dateien auswählen"
-
-### Unterstützte Formate
-
-#### Zahlungskonten Tab
-Kombiniert verschiedene Zahlungsdienstleister:
-- **Bank Import**: `.csv` - Kontoauszüge deutscher Banken (Format: Konto_XXXXX_DDMMYY_HHMMSS.csv)
-- **PayPal Import**: `.csv` - PayPal-Transaktionsexporte
-- **Stripe Import**: `.csv` - Stripe Payments Exporte
-- **Mollie Import**: `.csv` - Mollie Settlement Reports
-
-#### DATEV Tab
-- **DATEV Import**: `.csv` - DATEV-Exporte (klassisch oder Belegexport)
-
-#### Belege Tab  
-- **Dokumente**: `.pdf`, `.jpg`, `.jpeg`, `.png` - Rechnungen und Belege (werden in Phase 2 mit AI verarbeitet)
-
-### API-Endpunkte
-
-**Import einer Datei:**
 ```bash
-# Bank CSV
-curl -X POST "http://localhost:8000/api/imports/file" \
-     -F "file=@Konto_1234567_250114_101756.csv" \
-     -F "account_name=Geschäftskonto Sparkasse" \
-     -F "iban=DE12345678901234567890" \
-     -F "bic=DEUTDEFF"
+# 1. Python Virtual Environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# PayPal CSV
-curl -X POST "http://localhost:8000/api/imports/file" \
-     -F "file=@Download.CSV" \
-     -F "account_name=PayPal Geschäftskonto"
+# 2. Dependencies installieren
+pip install -r requirements.txt
 
-# Stripe CSV
-curl -X POST "http://localhost:8000/api/imports/file" \
-     -F "file=@unified_payments4.csv" \
-     -F "account_name=Stripe Hauptkonto"
+# 3. Datenbank initialisieren
+python init_db.py
 
-# Mollie CSV
-curl -X POST "http://localhost:8000/api/imports/file" \
-     -F "file=@mollie_settlement.csv" \
-     -F "account_name=Mollie Geschäftskonto"
-```
-
-**Import-Status abfragen:**
-```bash
-curl "http://localhost:8000/api/imports/status/{import_id}"
-```
-
-## Datei-Formate
-
-### Bank CSV Format
-- Semikolon-getrennt (`;`)
-- Spalten:
-  1. Referenznummer
-  2. Buchungsdatum (DD.MM.YYYY)
-  3. Betrag (Deutsches Format: 1.234,56)
-  4. Valutadatum
-  5. Leer/Reserviert
-  6. Partner/Empfänger
-  7. Verwendungszweck
-  8. Kontonummer
-
-### PayPal CSV Format
-- Komma-getrennt (`,`)
-- Wichtige Spalten:
-  - Datum, Uhrzeit
-  - Name (Transaktionspartner)
-  - Typ (Transaktionstyp)
-  - Status
-  - Währung
-  - Brutto, Gebühr, Netto
-  - Transaktionscode
-  - Betreff
-
-### Stripe CSV Format
-- Komma-getrennt (`,`)
-- Wichtige Spalten:
-  - id (Stripe ID)
-  - Created date (UTC)
-  - Amount (in Cents)
-  - Fee
-  - Currency
-  - Status
-  - Customer Email
-  - Description
-  - Metadata-Felder
-
-### Mollie CSV Format
-- Komma-getrennt (`,`)
-- Wichtige Spalten:
-  - Date
-  - Payment method
-  - Currency
-  - Amount
-  - Status
-  - ID (Mollie Transaktions-ID)
-  - Description
-  - Consumer name
-  - Settlement amount
-  - Settlement reference
-
-### DATEV CSV Format
-- Unterstützt klassische DATEV-Exporte und Belegexporte
-- Automatische Format-Erkennung
-- Verschiedene Encodings werden unterstützt (CP1252, UTF-8, etc.)
-
-## Datei-Struktur Phase 1
-
-```
-jahresabschluss-system/
-├── run.py                 # Start-Script
-├── init_db.py            # DB-Initialisierung
-├── requirements.txt      # Python Dependencies
-├── .env.example          # Umgebungsvariablen-Vorlage
-├── .gitignore
-│
-├── src/
-│   ├── __init__.py
-│   ├── api/
-│   │   ├── __init__.py
-│   │   ├── main.py              # FastAPI App
-│   │   └── routers/
-│   │       ├── __init__.py
-│   │       └── imports.py       # Import-Endpunkte
-│   ├── core/
-│   │   ├── __init__.py
-│   │   └── config.py           # Konfiguration
-│   ├── infrastructure/
-│   │   ├── __init__.py
-│   │   ├── importers/          # Import-Module
-│   │   │   ├── __init__.py
-│   │   │   ├── base.py
-│   │   │   ├── bank_csv.py    # Bank CSV Importer
-│   │   │   ├── paypal.py      # PayPal CSV Importer
-│   │   │   ├── stripe.py      # Stripe CSV Importer
-│   │   │   ├── mollie.py      # Mollie CSV Importer
-│   │   │   ├── datev.py       # DATEV Importer
-│   │   │   ├── pdf.py         # PDF/Image Importer
-│   │   │   └── factory.py
-│   │   └── database/          # Datenbank
-│   │       ├── __init__.py
-│   │       ├── connection.py
-│   │       └── models.py
-│   └── presentation/
-│       ├── __init__.py
-│       └── templates/
-│           └── index.html     # Web-UI
-│
-└── migrations/
-    └── schema/
-        └── 001_create_tables.sql
-```
-
-## Troubleshooting
-
-**Import-Fehler beim Start:**
-```bash
-# Stellen Sie sicher, dass Sie im Hauptverzeichnis sind und verwenden:
+# 4. Server starten
 python run.py
 ```
 
-**Datenbankverbindung fehlgeschlagen:**
-- Prüfen Sie die DATABASE_URL in .env
-- Format: `postgresql://user:password@localhost:5432/jahresabschluss`
-- Stellen Sie sicher, dass PostgreSQL läuft:
-  ```bash
-  # Mac:
-  brew services list | grep postgresql
-  # Linux:
-  systemctl status postgresql
-  ```
+## 📋 Voraussetzungen
 
-**Import schlägt fehl:**
+- Python 3.11+
+- PostgreSQL 15+
+- Redis (optional, für AI Caching)
+- Azure Cognitive Services Account (für Phase 2)
+- Anthropic Claude API Key (für Phase 2)
+
+## 🔧 Konfiguration
+
+### Essenzielle Umgebungsvariablen
+
+```env
+# Datenbank
+DATABASE_URL=postgresql://user:pass@localhost/jahresabschluss
+
+# Phase 2: AI Services (optional)
+AZURE_FORM_RECOGNIZER_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
+AZURE_FORM_RECOGNIZER_KEY=your-key
+ANTHROPIC_API_KEY=your-anthropic-key
+```
+
+### AI Services einrichten
+
+#### Azure Document Intelligence
+1. Azure Portal → Cognitive Services → Form Recognizer erstellen
+2. Endpoint und Key kopieren
+3. In .env eintragen
+
+#### Claude API
+1. [Anthropic Console](https://console.anthropic.com/) öffnen
+2. API Key generieren
+3. In .env eintragen
+
+## 📁 Unterstützte Dateiformate
+
+### Import-Formate
+- **Bank CSV**: Deutsche Banken (Sparkasse, Commerzbank, etc.)
+- **PayPal CSV**: Transaktionsexporte
+- **Stripe CSV**: Unified payments export
+- **Mollie CSV**: Settlement reports
+- **DATEV CSV**: Buchungsexporte
+
+### Dokumente (für AI-Verarbeitung)
+- **PDF**: Rechnungen, Belege
+- **JPEG/PNG**: Gescannte Dokumente, Fotos von Belegen
+
+## 🔄 Workflow
+
+### 1. Import (Phase 1)
+```
+Datei Upload → Parsing → Speicherung → Transaktionsübersicht
+```
+
+### 2. AI-Verarbeitung (Phase 2)
+```
+Dokument → Azure Extraction → Transaction Matching → Claude Booking → Auto-Book
+```
+
+## 📊 API Endpoints
+
+### Phase 1 - Import
+- `POST /api/imports/file` - Datei importieren
+- `GET /api/imports/list` - Import-Historie
+- `GET /api/imports/{id}/transactions` - Transaktionen anzeigen
+
+### Phase 2 - AI Processing
+- `POST /api/ai/process/{document_id}` - Dokument verarbeiten
+- `POST /api/ai/process/batch` - Batch-Verarbeitung
+- `POST /api/ai/match/find` - Transaktionen matchen
+- `GET /api/ai/suggestions/{document_id}` - Buchungsvorschläge
+
+## 🧪 Testing
+
+### System Health Check
+```bash
+curl http://localhost:8000/health
+```
+
+### AI Services Status
+```bash
+curl http://localhost:8000/api/ai/stats
+```
+
+### Dokument verarbeiten
+```bash
+# Mit Auto-Booking
+curl -X POST "http://localhost:8000/api/ai/process/{document_id}?auto_book=true"
+```
+
+## 📈 Konfidenz-Level
+
+### Dokument-Extraktion
+- **Hoch** (>90%): Alle Felder eindeutig erkannt
+- **Mittel** (70-90%): Hauptfelder erkannt
+- **Niedrig** (<70%): Manuelle Prüfung erforderlich
+
+### Transaction Matching
+- **Perfekt** (>95%): Betrag + Datum + Referenz stimmen
+- **Sehr gut** (>85%): Betrag + Datum stimmen überein
+- **Gut** (>70%): Betrag stimmt, Datum ähnlich
+- **Unsicher** (<70%): Nur als Vorschlag
+
+### Auto-Booking Schwellwerte
+- **Automatisch** (>85%): Buchung wird erstellt
+- **Review** (70-85%): Manuelle Bestätigung
+- **Manuell** (<70%): Vollständige manuelle Eingabe
+
+## 🐛 Troubleshooting
+
+### Import-Probleme
 - Prüfen Sie das Dateiformat
-- Bei Bank-CSV: Dateiname sollte "Konto" enthalten
-- Bei PayPal-CSV: Typischerweise "Download.CSV"
-- Bei Stripe-CSV: Sollte "payments" oder "stripe" im Namen haben
-- Bei Mollie-CSV: Sollte "mollie" im Namen haben (z.B. mollie*settlement*.csv)
-- Bei DATEV-CSV: Beliebiger Name, System erkennt Format automatisch
-- Logs prüfen in der Konsole
+- Bank CSV: "Konto" im Dateinamen
+- PayPal: "Download.CSV" oder "paypal" im Namen
+- Encoding: UTF-8 oder Windows-1252
 
-**Mollie Settlement Reports:**
-- Mollie erstellt oft mehrere Settlement-Dateien pro Monat
-- Jede Datei enthält eine Settlement-Referenz
-- Dateien können über den "Zahlungskonten" Tab gebündelt importiert werden
-- Settlement Amount ist der Nettobetrag nach Gebühren
+### AI Service Fehler
 
-**Module nicht gefunden:**
-- Verwenden Sie `python run.py` statt direktes Ausführen
-- Stellen Sie sicher, dass die virtuelle Umgebung aktiviert ist
-- `pip install -r requirements.txt` wurde ausgeführt
+**Azure nicht verfügbar**
+- API Key prüfen
+- Endpoint muss mit `/` enden
+- Firewall/Proxy Einstellungen
 
-## Beispiel-Dateien
+**Claude Fehler**
+- API Key gültig?
+- Rate Limits beachten
+- Modell verfügbar?
 
-Sie können diese Beispiel-Dateien zum Testen verwenden:
-- Bank CSV: `Konto_3222594_250114_101756.csv`
-- PayPal CSV: `Download.CSV` 
-- Stripe CSV: `unified_payments4.csv`
-- Mollie CSV: `mollie*settlement*.csv`
-- DATEV CSV: Beliebige DATEV-Export-Datei
-- PDF/Bilder: Beliebige Rechnung als PDF, JPEG oder PNG
+### Performance
+- Redis für Caching aktivieren
+- Batch-Processing für viele Dokumente
+- Rate Limits anpassen
 
-## Nächste Schritte (Phase 2)
+## 🔒 Sicherheit
 
-Phase 2 wird hinzufügen:
-- Azure AI Document Intelligence Integration
-- Claude API für intelligente Kontierung
-- Automatisches Matching und Buchungsvorschläge
-- Intelligente Kategorisierung von PayPal/Stripe/Mollie Transaktionen
-- Automatische Gebührenbuchungen für Payment Provider
+- API Keys nur in Umgebungsvariablen
+- Niemals Keys in Code committen
+- Regelmäßige Key-Rotation
+- HTTPS in Produktion verwenden
 
-## Support
+## 📚 Architektur
 
-Bei Problemen:
-1. Prüfen Sie die Konsolen-Ausgabe
-2. Schauen Sie in die API-Docs: http://localhost:8000/docs
-3. Prüfen Sie die Logs
-4. Erstellen Sie ein Issue im Repository
+```
+├── API Layer (FastAPI)
+│   ├── Import Routes
+│   └── AI Processing Routes
+├── Application Services
+│   ├── Matching Service
+│   └── Booking Service
+├── Infrastructure
+│   ├── Database (PostgreSQL)
+│   ├── File Storage
+│   ├── AI Services
+│   │   ├── Azure Document Intelligence
+│   │   └── Claude API
+│   └── Importers
+└── Domain
+    ├── Entities
+    └── Business Rules (SKR04)
+```
+
+## 🚧 Roadmap
+
+### Phase 3 (Geplant)
+- Machine Learning für besseres Matching
+- Lernende Buchungsvorschläge
+- Multi-Mandanten-Fähigkeit
+
+### Phase 4 (Geplant)
+- Erweiterte Reports
+- E-Bilanz Export
+- API für Drittsysteme
+
+## 🤝 Contributing
+
+1. Fork das Repository
+2. Feature Branch erstellen (`git checkout -b feature/AmazingFeature`)
+3. Änderungen committen (`git commit -m 'Add AmazingFeature'`)
+4. Branch pushen (`git push origin feature/AmazingFeature`)
+5. Pull Request öffnen
+
+## 📝 Lizenz
+
+Dieses Projekt ist lizenziert unter der MIT License.
+
+## 🙏 Danksagungen
+
+- Azure Cognitive Services für Document Intelligence
+- Anthropic für Claude AI
+- FastAPI Framework
+- Alpine.js für reactive UI

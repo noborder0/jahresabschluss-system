@@ -1,11 +1,8 @@
-# docker-compose.yml
-# Vereinfachtes Setup für Phase 1
-
 version: '3.8'
 
 services:
   postgres:
-    image: postgres:15-alpine
+    image: postgres:15
     environment:
       POSTGRES_DB: jahresabschluss
       POSTGRES_USER: postgres
@@ -14,29 +11,47 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./migrations/schema/001_create_tables.sql:/docker-entrypoint-initdb.d/001_create_tables.sql
+      - ./migrations/schema:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
+    build: .
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/jahresabschluss
+      REDIS_URL: redis://redis:6379/0
       PYTHONPATH: /app
-    volumes:
-      - ./src:/app/src
-      - ./uploads:/app/uploads
+      # AI Services from .env file
+      AZURE_FORM_RECOGNIZER_ENDPOINT: ${AZURE_FORM_RECOGNIZER_ENDPOINT}
+      AZURE_FORM_RECOGNIZER_KEY: ${AZURE_FORM_RECOGNIZER_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./uploads:/app/uploads
     command: python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 
 volumes:
   postgres_data:
+  redis_data:
