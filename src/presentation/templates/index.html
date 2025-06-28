@@ -420,6 +420,7 @@
             justify-content: space-between;
             align-items: center;
             transition: background 0.2s ease;
+            position: relative;
         }
 
         .import-item:hover {
@@ -430,6 +431,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            flex: 1;
         }
 
         .file-icon {
@@ -457,7 +459,7 @@
         .import-stats {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
         }
 
         .transaction-count {
@@ -510,6 +512,25 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Transaction review styles */
+        .view-button {
+            padding: 6px 16px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            white-space: nowrap;
+            z-index: 10;
+            position: relative;
+        }
+
+        .view-button:hover {
+            background: #2563eb;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .tabs-nav {
@@ -534,11 +555,22 @@
             .provider-selector {
                 grid-template-columns: 1fr;
             }
+
+            .import-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .import-stats {
+                width: 100%;
+                justify-content: space-between;
+            }
         }
     </style>
 </head>
 <body>
-    <div x-data="jahresabschlussApp()">
+    <div x-data="jahresabschlussApp()" x-init="init()">
         <!-- Header -->
         <header>
             <div class="container">
@@ -573,6 +605,13 @@
                         class="tab-button"
                     >
                         Belege (PDF/Bilder)
+                    </button>
+                    <button
+                        @click="activeTab = 'review'"
+                        :class="{ 'active': activeTab === 'review' }"
+                        class="tab-button"
+                    >
+                        Transaktionen prüfen
                     </button>
                 </nav>
 
@@ -862,6 +901,96 @@
                             </p>
                         </div>
                     </div>
+
+                    <!-- Transaction Review Tab -->
+                    <div class="tab-panel" :class="{ 'active': activeTab === 'review' }">
+                        <h2 style="font-size: 18px; margin-bottom: 10px;">Transaktionen prüfen</h2>
+                        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                            Überprüfen Sie importierte Transaktionen und korrigieren Sie erkannte Daten.
+                        </p>
+
+                        <div style="background: #f8f9fa; border-radius: 8px; padding: 24px; text-align: center;">
+                            <p style="margin-bottom: 20px;">
+                                Wählen Sie einen Import aus der Historie unten aus oder navigieren Sie zur Transaktionsübersicht.
+                            </p>
+                            <button
+                                @click="window.location.href = '/transactions.html'"
+                                class="upload-button"
+                                style="display: inline-block;"
+                            >
+                                Zur Transaktionsübersicht →
+                            </button>
+
+                            <!-- Debug Info -->
+                            <details style="margin-top: 20px; text-align: left;">
+                                <summary style="cursor: pointer; font-size: 12px; color: #666;">Debug Info</summary>
+                                <div style="font-size: 11px; color: #666; margin-top: 10px;">
+                                    <p>Total imports: <span x-text="imports.length"></span></p>
+                                    <p>Imports with transactions: <span x-text="imports.filter(i => i.transactionCount > 0).length"></span></p>
+                                    <p>Loading: <span x-text="loadingImports"></span></p>
+                                    <button @click="console.log('All imports:', imports)" class="edit-button" style="margin-top: 5px;">
+                                        Log imports to console
+                                    </button>
+                                    <button @click="testManualImport()" class="edit-button" style="margin-top: 5px; margin-left: 5px;">
+                                        Test Import hinzufügen
+                                    </button>
+                                    <div style="margin-top: 10px; max-height: 200px; overflow-y: auto; background: #f0f0f0; padding: 10px; border-radius: 4px;">
+                                        <template x-for="imp in imports" :key="imp.id">
+                                            <div style="margin-bottom: 5px; padding: 5px; background: white; border-radius: 3px;">
+                                                <strong x-text="imp.filename"></strong><br>
+                                                Type: <span x-text="imp.sourceType"></span>,
+                                                Count: <span x-text="imp.transactionCount"></span>,
+                                                ID: <span x-text="imp.importId"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+
+                        <div style="margin-top: 30px;">
+                            <h3 style="font-size: 16px; margin-bottom: 15px;">Schnellzugriff auf letzte Importe:</h3>
+                            <template x-if="getRecentImportsWithTransactions().length === 0">
+                                <div>
+                                    <p style="color: #999; text-align: center; padding: 20px;">
+                                        Noch keine Importe mit Transaktionen vorhanden.
+                                    </p>
+                                    <div style="text-align: center; margin-top: 10px;">
+                                        <button
+                                            @click="loadImports()"
+                                            class="edit-button"
+                                            :disabled="loadingImports"
+                                        >
+                                            Importe neu laden
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="getRecentImportsWithTransactions().length > 0">
+                                <div style="display: grid; gap: 12px;">
+                                    <template x-for="import in getRecentImportsWithTransactions()" :key="import.id">
+                                        <div style="border: 1px solid #e0e0e0; border-radius: 6px; padding: 16px; display: flex; justify-content: space-between; align-items: center; background: white;">
+                                            <div>
+                                                <div style="font-weight: 500; margin-bottom: 4px;" x-text="import.filename"></div>
+                                                <div style="font-size: 12px; color: #666;">
+                                                    <span x-text="import.sourceType"></span> •
+                                                    <span x-text="`${import.transactionCount} Transaktionen`"></span> •
+                                                    <span x-text="formatDate(import.importDate)"></span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                @click="viewImportTransactions(import)"
+                                                class="view-button"
+                                                type="button"
+                                            >
+                                                Transaktionen anzeigen
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -871,20 +1000,45 @@
                 <span class="close-error" @click="error = null">✕</span>
             </div>
 
+            <!-- API Test (for debugging) -->
+            <div style="background: #f0f0f0; padding: 10px; margin-bottom: 20px; border-radius: 5px; font-size: 12px;">
+                <strong>Debug-Bereich</strong>
+                <button @click="testAPI()" class="edit-button" style="margin-left: 10px;">Test API</button>
+                <button @click="loadImports()" class="edit-button" style="margin-left: 5px;">Importe laden</button>
+                <span x-show="loadingImports" style="margin-left: 10px;">Lädt...</span>
+                <div id="api-test-result" style="margin-top: 10px;"></div>
+            </div>
+
             <!-- Import History -->
             <div class="history-container">
-                <div class="history-header">
+                <div class="history-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <h2>Import-Historie</h2>
+                    <button
+                        @click="loadImports()"
+                        class="edit-button"
+                        style="padding: 6px 12px;"
+                        :disabled="loadingImports"
+                    >
+                        <span x-show="!loadingImports">↻ Aktualisieren</span>
+                        <span x-show="loadingImports">Lädt...</span>
+                    </button>
                 </div>
 
                 <div class="history-content">
-                    <template x-if="imports.length === 0">
+                    <template x-if="loadingImports">
+                        <div class="loading-overlay" style="padding: 40px; text-align: center;">
+                            <span class="spinner"></span>
+                            <span>Lade Import-Historie...</span>
+                        </div>
+                    </template>
+
+                    <template x-if="!loadingImports && imports.length === 0">
                         <div class="empty-state">
                             <p>Noch keine Importe vorhanden</p>
                         </div>
                     </template>
 
-                    <template x-if="imports.length > 0">
+                    <template x-if="!loadingImports && imports.length > 0">
                         <div>
                             <template x-for="group in groupedImports" :key="group.name">
                                 <div class="history-group">
@@ -913,6 +1067,20 @@
                                                     :class="getStatusClass(import.status)"
                                                     x-text="getStatusText(import.status)"
                                                 ></span>
+                                                <template x-if="import.importId && import.transactionCount > 0 && import.sourceType !== 'PDF'">
+                                                    <button
+                                                        @click="viewImportTransactions(import)"
+                                                        class="view-button"
+                                                        type="button"
+                                                    >
+                                                        Prüfen
+                                                    </button>
+                                                </template>
+                                                <template x-if="!import.importId && import.transactionCount > 0">
+                                                    <span style="font-size: 12px; color: #999;">
+                                                        (Noch nicht gespeichert)
+                                                    </span>
+                                                </template>
                                             </div>
                                         </div>
                                     </template>
@@ -948,6 +1116,60 @@
 
                 // Import history
                 imports: [],
+                loadingImports: false,
+
+                // Initialize the app
+                async init() {
+                    console.log('Initializing app...');
+                    await this.loadImports();
+                },
+
+                // Load imports from backend
+                async loadImports() {
+                    this.loadingImports = true;
+                    try {
+                        console.log('Loading imports from backend...');
+                        const response = await fetch('/api/imports/list?limit=100');
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(data.detail || 'Fehler beim Laden der Importe');
+                        }
+
+                        console.log('API Response:', data);
+
+                        // Transform backend data to frontend format
+                        this.imports = data.imports.map(imp => {
+                            const transformed = {
+                                id: imp.import_id,
+                                importId: imp.import_id,
+                                filename: imp.source_file,
+                                sourceType: imp.source_type,
+                                status: 'success',
+                                importDate: new Date(imp.import_date),
+                                transactionCount: imp.transaction_count || 0,
+                                bankInfo: imp.source_type === 'BANK_CSV' ? (imp.metadata || {}) : null,
+                                accountInfo: ['PAYPAL', 'STRIPE', 'MOLLIE'].includes(imp.source_type) ? (imp.metadata || {}) : null,
+                                fileType: imp.metadata?.file_type
+                            };
+                            console.log('Transformed import:', transformed);
+                            return transformed;
+                        });
+
+                        console.log('Transformed imports:', this.imports);
+
+                    } catch (error) {
+                        console.error('Error loading imports:', error);
+                        this.error = 'Fehler beim Laden der Import-Historie: ' + error.message;
+
+                        // Check if it's a connection error
+                        if (error.message.includes('fetch')) {
+                            this.error = 'Keine Verbindung zur API. Stellen Sie sicher, dass der Server läuft.';
+                        }
+                    } finally {
+                        this.loadingImports = false;
+                    }
+                },
 
                 // Computed property for grouped imports
                 get groupedImports() {
@@ -976,12 +1198,15 @@
                 getGroupKey(imp) {
                     if (imp.sourceType === 'BANK_CSV' && imp.bankInfo) {
                         return imp.bankInfo.account_name || imp.bankInfo.account_number || 'bank_unknown';
-                    } else if (imp.sourceType === 'PAYPAL' && imp.accountInfo) {
-                        return imp.accountInfo.account_name || 'paypal_default';
-                    } else if (imp.sourceType === 'STRIPE' && imp.accountInfo) {
-                        return imp.accountInfo.account_name || 'stripe_default';
-                    } else if (imp.sourceType === 'MOLLIE' && imp.accountInfo) {
-                        return imp.accountInfo.account_name || 'mollie_default';
+                    } else if (imp.sourceType === 'PAYPAL' && (imp.accountInfo || imp.bankInfo)) {
+                        const info = imp.accountInfo || imp.bankInfo;
+                        return info.account_name || 'paypal_default';
+                    } else if (imp.sourceType === 'STRIPE' && (imp.accountInfo || imp.bankInfo)) {
+                        const info = imp.accountInfo || imp.bankInfo;
+                        return info.account_name || 'stripe_default';
+                    } else if (imp.sourceType === 'MOLLIE' && (imp.accountInfo || imp.bankInfo)) {
+                        const info = imp.accountInfo || imp.bankInfo;
+                        return info.account_name || 'mollie_default';
                     } else if (imp.sourceType === 'DATEV') {
                         return 'datev';
                     } else if (imp.sourceType === 'PDF') {
@@ -991,26 +1216,30 @@
                 },
 
                 getGroupInfo(imp) {
-                    if (imp.sourceType === 'BANK_CSV' && imp.bankInfo) {
-                        const name = imp.bankInfo.account_name || `Konto ${imp.bankInfo.account_number || 'Unbekannt'}`;
+                    if (imp.sourceType === 'BANK_CSV') {
+                        const info = imp.bankInfo || imp.accountInfo || {};
+                        const name = info.account_name || `Konto ${info.account_number || 'Unbekannt'}`;
                         let subtitle = '';
 
-                        if (imp.bankInfo.iban) {
-                            subtitle = `IBAN: ${this.formatIBANDisplay(imp.bankInfo.iban)}`;
-                            if (imp.bankInfo.bic) {
-                                subtitle += ` • BIC: ${imp.bankInfo.bic}`;
+                        if (info.iban) {
+                            subtitle = `IBAN: ${this.formatIBANDisplay(info.iban)}`;
+                            if (info.bic) {
+                                subtitle += ` • BIC: ${info.bic}`;
                             }
                         }
 
                         return { name, subtitle };
-                    } else if (imp.sourceType === 'PAYPAL' && imp.accountInfo) {
-                        const name = imp.accountInfo.account_name || 'PayPal';
+                    } else if (imp.sourceType === 'PAYPAL') {
+                        const info = imp.accountInfo || imp.bankInfo || {};
+                        const name = info.account_name || 'PayPal';
                         return { name, subtitle: 'Zahlungsdienstleister' };
-                    } else if (imp.sourceType === 'STRIPE' && imp.accountInfo) {
-                        const name = imp.accountInfo.account_name || 'Stripe';
+                    } else if (imp.sourceType === 'STRIPE') {
+                        const info = imp.accountInfo || imp.bankInfo || {};
+                        const name = info.account_name || 'Stripe';
                         return { name, subtitle: 'Payment Processor' };
-                    } else if (imp.sourceType === 'MOLLIE' && imp.accountInfo) {
-                        const name = imp.accountInfo.account_name || 'Mollie';
+                    } else if (imp.sourceType === 'MOLLIE') {
+                        const info = imp.accountInfo || imp.bankInfo || {};
+                        const name = info.account_name || 'Mollie';
                         return { name, subtitle: 'Payment Service Provider' };
                     } else if (imp.sourceType === 'DATEV') {
                         return { name: 'DATEV Exporte', subtitle: '' };
@@ -1043,6 +1272,33 @@
                         'mollie': 'Mollie Settlement CSV hierher ziehen oder'
                     };
                     return texts[this.selectedProvider] || 'CSV-Dateien hierher ziehen oder';
+                },
+
+                // Get recent imports with transactions
+                getRecentImportsWithTransactions() {
+                    return this.imports
+                        .filter(imp => imp.importId && imp.transactionCount > 0 && imp.sourceType !== 'PDF')
+                        .slice(0, 5); // Show last 5 imports
+                },
+
+                // View transactions for an import
+                viewImportTransactions(importEntry) {
+                    console.log('Viewing transactions for import:', importEntry);
+
+                    // Store the import data in session storage to pass to transactions page
+                    const importData = {
+                        import_id: importEntry.importId,
+                        source_file: importEntry.filename,
+                        source_type: importEntry.sourceType,
+                        import_date: importEntry.importDate,
+                        metadata: importEntry.bankInfo || importEntry.accountInfo || {}
+                    };
+
+                    console.log('Storing import data:', importData);
+                    sessionStorage.setItem('selectedImport', JSON.stringify(importData));
+
+                    // Navigate to transactions page
+                    window.location.href = '/transactions.html';
                 },
 
                 // Payment handlers
@@ -1085,6 +1341,9 @@
                     };
 
                     this.paymentUploading = false;
+
+                    // Reload imports from backend to get the real IDs
+                    await this.loadImports();
                 },
 
                 async uploadPaymentFile(file) {
@@ -1149,6 +1408,9 @@
 
                         this.error = null;
 
+                        // After successful upload, reload all imports to ensure we have the correct data
+                        await this.loadImports();
+
                     } catch (error) {
                         const index = this.imports.findIndex(i => i.id === importEntry.id);
                         if (index !== -1) {
@@ -1187,6 +1449,8 @@
                     for (const file of files) {
                         await this.uploadFile(file, type);
                     }
+                    // Reload imports after all files are uploaded
+                    await this.loadImports();
                 },
 
                 async uploadFile(file, type) {
@@ -1298,6 +1562,51 @@
                         hour: '2-digit',
                         minute: '2-digit'
                     });
+                },
+
+                // Test function for debugging
+                testManualImport() {
+                    const testImport = {
+                        id: 'test-' + Date.now(),
+                        importId: 'test-' + Date.now(),
+                        filename: 'Test Import.csv',
+                        sourceType: 'BANK_CSV',
+                        status: 'success',
+                        importDate: new Date(),
+                        transactionCount: 10,
+                        bankInfo: { account_name: 'Test Account' }
+                    };
+                    this.imports.unshift(testImport);
+                    console.log('Added test import:', testImport);
+                },
+
+                // Test API connection
+                async testAPI() {
+                    const resultDiv = document.getElementById('api-test-result');
+                    try {
+                        resultDiv.innerHTML = 'Testing API...';
+
+                        // Test health endpoint
+                        const healthResponse = await fetch('/health');
+                        const healthData = await healthResponse.json();
+
+                        // Test imports endpoint
+                        const importsResponse = await fetch('/api/imports/list?limit=5');
+                        const importsData = await importsResponse.json();
+
+                        resultDiv.innerHTML = `
+                            <div style="color: green;">✓ API is working</div>
+                            <div>Health: ${JSON.stringify(healthData)}</div>
+                            <div>Imports found: ${importsData.imports ? importsData.imports.length : 0}</div>
+                        `;
+
+                        console.log('Health check:', healthData);
+                        console.log('Imports data:', importsData);
+
+                    } catch (error) {
+                        resultDiv.innerHTML = `<div style="color: red;">✗ API Error: ${error.message}</div>`;
+                        console.error('API test failed:', error);
+                    }
                 }
             }
         }

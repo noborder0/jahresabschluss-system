@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaktionen prüfen - Jahresabschluss-System</title>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .header-subtitle {
+            color: #7f8c8d;
+            font-size: 14px;
+            float: right;
+            margin-top: 8px;
+        }
+
+        /* Main container */
+        .main-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 30px;
+        }
+
+        /* Transaction review header */
+        .transaction-review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+        }
+
+        /* Transaction table */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .transaction-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .transaction-table th {
+            background: #f7f9fc;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e0e0e0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .transaction-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .transaction-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .amount-positive {
+            color: #10b981;
+            font-weight: 500;
+        }
+
+        .amount-negative {
+            color: #ef4444;
+            font-weight: 500;
+        }
+
+        .edit-button {
+            background: none;
+            border: 1px solid #d1d5db;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #6b7280;
+            transition: all 0.2s ease;
+        }
+
+        .edit-button:hover {
+            border-color: #10b981;
+            color: #10b981;
+        }
+
+        .back-button {
+            padding: 8px 16px;
+            background: #6b7280;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s ease;
+        }
+
+        .back-button:hover {
+            background: #4b5563;
+        }
+
+        /* Form elements */
+        .form-input {
+            padding: 10px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        select.form-input {
+            background: white;
+            cursor: pointer;
+        }
+
+        /* Status badges */
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .page-button {
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .page-button:hover:not(:disabled) {
+            border-color: #10b981;
+            color: #10b981;
+        }
+
+        .page-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .page-button.active {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
+
+        .page-info {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        /* Transaction detail modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: #f3f4f6;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .detail-row {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            padding: 12px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .detail-label {
+            font-weight: 500;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .detail-value {
+            color: #333;
+            font-size: 14px;
+        }
+
+        .detail-value.editable {
+            padding: 4px 8px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .detail-value.editable:hover {
+            background: #f3f4f6;
+            border-color: #e5e7eb;
+        }
+
+        .detail-value.editing {
+            background: white;
+            border-color: #10b981;
+        }
+
+        .raw-data-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .raw-data-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .raw-data-content {
+            background: #f9fafb;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .save-button {
+            padding: 8px 16px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s ease;
+        }
+
+        .save-button:hover {
+            background: #059669;
+        }
+
+        .save-button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+
+        /* Error message */
+        .error-box {
+            background: #fee;
+            border-left: 4px solid #ef4444;
+            padding: 16px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .error-text {
+            color: #991b1b;
+            font-size: 14px;
+        }
+
+        .close-error {
+            cursor: pointer;
+            color: #ef4444;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #10b981;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-overlay {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .transaction-table {
+                font-size: 12px;
+            }
+
+            .transaction-table th,
+            .transaction-table td {
+                padding: 8px;
+            }
+
+            .filter-controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .transaction-review-header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div x-data="transactionReviewApp()" x-init="init()">
+        <!-- Header -->
+        <header>
+            <div class="container">
+                <h1>Jahresabschluss-System
+                    <span class="header-subtitle">Transaktionen prüfen</span>
+                </h1>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container">
+            <!-- Error Messages -->
+            <div x-show="error" x-transition class="error-box">
+                <span class="error-text" x-text="error"></span>
+                <span class="close-error" @click="error = null">✕</span>
+            </div>
+
+            <!-- Import Selector -->
+            <div class="main-container" style="margin-bottom: 20px;">
+                <h2 style="font-size: 18px; margin-bottom: 16px;">Import auswählen</h2>
+
+                <template x-if="loadingImports">
+                    <div class="loading-overlay">
+                        <span class="spinner"></span>
+                        <span>Lade Importe...</span>
+                    </div>
+                </template>
+
+                <template x-if="!loadingImports && availableImports.length === 0">
+                    <div class="empty-state" style="padding: 20px;">
+                        <p>Keine Importe mit Transaktionen gefunden.</p>
+                        <button @click="window.location.href = '/'" class="back-button" style="margin-top: 10px;">
+                            Zur Hauptseite
+                        </button>
+                    </div>
+                </template>
+
+                <template x-if="!loadingImports && availableImports.length > 0">
+                    <div>
+                        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px;">
+                            <select
+                                x-model="selectedImportId"
+                                @change="selectImport($event.target.value)"
+                                class="form-input"
+                                style="flex: 1; padding: 8px 12px;"
+                            >
+                                <option value="">-- Bitte Import auswählen --</option>
+                                <template x-for="imp in availableImports" :key="imp.import_id">
+                                    <option
+                                        :value="imp.import_id"
+                                        :selected="selectedImport && selectedImport.import_id === imp.import_id"
+                                    >
+                                        <span x-text="`${imp.source_file} - ${imp.source_type} (${imp.transaction_count} Transaktionen) - ${formatDateShort(imp.import_date)}`"></span>
+                                    </option>
+                                </template>
+                            </select>
+                            <button @click="window.location.href = '/'" class="back-button">
+                                Zur Hauptseite
+                            </button>
+                        </div>
+
+                        <div x-show="selectedImportId" style="font-size: 14px; color: #666;">
+                            <template x-if="availableImports.find(i => i.import_id === selectedImportId)">
+                                <div>
+                                    <span x-text="`Ausgewählt: ${availableImports.find(i => i.import_id === selectedImportId).source_file}`"></span>
+                                    <span x-text="` (${availableImports.find(i => i.import_id === selectedImportId).transaction_count} Transaktionen)`"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div class="main-container" x-show="selectedImport" style="margin-top: 20px;">
+                <template x-if="selectedImport">
+                    <div>
+                        <div class="transaction-review-header">
+                            <div>
+                                <h2 style="font-size: 18px; margin-bottom: 4px;">
+                                    <span x-text="selectedImport.source_file"></span>
+                                </h2>
+                                <p style="color: #666; font-size: 14px;">
+                                    <span x-text="`${selectedImport.source_type} Import vom ${formatDate(selectedImport.import_date)}`"></span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="filter-controls">
+                            <label class="filter-checkbox">
+                                <input type="checkbox" x-model="showProcessed" @change="updateFilters()">
+                                Verarbeitete anzeigen
+                            </label>
+                            <label class="filter-checkbox">
+                                <input type="checkbox" x-model="showUnprocessed" @change="updateFilters()">
+                                Unverarbeitete anzeigen
+                            </label>
+                            <span style="margin-left: auto; color: #6b7280; font-size: 14px;">
+                                <span x-text="`${transactions.length} von ${transactionTotal} Transaktionen`"></span>
+                            </span>
+                        </div>
+
+                        <template x-if="loadingTransactions">
+                            <div class="loading-overlay">
+                                <span class="spinner"></span>
+                                <span>Lade Transaktionen...</span>
+                            </div>
+                        </template>
+
+                        <template x-if="!loadingTransactions">
+                            <div>
+                                <template x-if="transactions.length === 0">
+                                    <div class="empty-state">
+                                        <p>Keine Transaktionen gefunden.</p>
+                                        <p style="font-size: 14px; color: #666; margin-top: 10px;">
+                                            Überprüfen Sie die Filter-Einstellungen oder stellen Sie sicher, dass der Import Transaktionen enthält.
+                                        </p>
+                                    </div>
+                                </template>
+
+                                <template x-if="transactions.length > 0">
+                                    <div class="table-container">
+                                        <table class="transaction-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Datum</th>
+                                                    <th>Betrag</th>
+                                                    <th>Beschreibung</th>
+                                                    <th>Konto</th>
+                                                    <th>Partner</th>
+                                                    <th>Status</th>
+                                                    <th>Aktionen</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template x-for="transaction in transactions" :key="transaction.id">
+                                                    <tr>
+                                                        <td x-text="transaction.booking_date ? formatDateShort(transaction.booking_date) : '-'"></td>
+                                                        <td>
+                                                            <span
+                                                                :class="parseFloat(transaction.amount) >= 0 ? 'amount-positive' : 'amount-negative'"
+                                                                x-text="formatAmount(transaction.amount)"
+                                                            ></span>
+                                                        </td>
+                                                        <td x-text="transaction.description || '-'" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></td>
+                                                        <td x-text="transaction.account_number || '-'"></td>
+                                                        <td x-text="transaction.account_name || '-'" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></td>
+                                                        <td>
+                                                            <span
+                                                                class="status-badge"
+                                                                :class="transaction.processed ? 'status-success' : 'status-pending'"
+                                                                x-text="transaction.processed ? 'Verarbeitet' : 'Offen'"
+                                                            ></span>
+                                                        </td>
+                                                        <td>
+                                                            <button @click="showTransactionDetail(transaction)" class="edit-button">
+                                                                Details
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- Pagination -->
+                        <div class="pagination" x-show="transactionPages > 1">
+                            <button
+                                @click="loadTransactionPage(transactionPage - 1)"
+                                :disabled="transactionPage === 1"
+                                class="page-button"
+                            >
+                                ← Zurück
+                            </button>
+
+                            <span class="page-info">
+                                Seite <span x-text="transactionPage"></span> von <span x-text="transactionPages"></span>
+                            </span>
+
+                            <button
+                                @click="loadTransactionPage(transactionPage + 1)"
+                                :disabled="transactionPage === transactionPages"
+                                class="page-button"
+                            >
+                                Weiter →
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </main>
+
+        <!-- Transaction Detail Modal -->
+        <template x-if="selectedTransaction">
+            <div class="modal-overlay" @click.self="selectedTransaction = null">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Transaktionsdetails</h3>
+                        <button @click="selectedTransaction = null" class="modal-close">×</button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="detail-row">
+                            <div class="detail-label">ID:</div>
+                            <div class="detail-value" x-text="selectedTransaction.id"></div>
+                        </div>
+
+                        <div class="detail-row">
+                            <div class="detail-label">Buchungsdatum:</div>
+                            <div class="detail-value editable"
+                                 :contenteditable="editingTransaction"
+                                 x-text="selectedTransaction.booking_date || '-'"
+                                 @blur="updateTransactionField('booking_date', $event.target.textContent)">
+                            </div>
+                        </div>
+
+                        <div class="detail-row">
+                            <div class="detail-label">Betrag:</div>
+                            <div class="detail-value editable"
+                                 :contenteditable="editingTransaction"
+                                 :class="parseFloat(selectedTransaction.amount) >= 0 ? 'amount-positive' : 'amount-negative'"
+                                 x-text="formatAmount(selectedTransaction.amount)"
+                                 @blur="updateTransactionField('amount', $event.target.textContent)">
+                            </div>
+                        </div>
+
+                        <div class="detail-row">
+                            <div class="detail-label">Beschreibung:</div>
+                            <div class="detail-value editable"
+                                 :contenteditable="editingTransaction"
+                                 x-text="selectedTransaction.description || '-'"
+                                 @blur="updateTransactionField('description', $event.target.textContent)"
+                                 style="min-height: 40px;">
+                            </div>
+                        </div>
+
+                        <div class="detail-row">
+                            <div class="detail-label">Kontonummer:</div>
+                            <div class="detail-value editable"
+                                 :contenteditable="editingTransaction"
+                                 x-text="selectedTransaction.account_number || '-'"
+                                 @blur="updateTransactionField('account_number', $event.target.textContent)">
+                            </div>
+                        </div>
+
+                        <div class="detail-row">
+                            <div class="detail-label">Gegenkonto:</div>
+                            <div class="detail-value editable"
+                                 :contenteditable="editingTransaction"
+                                 x-text="selectedTransaction.contra_account || '-'"
+                                 @blur="updateTransactionField('contra_account', $event.target.textContent)">
+                            </div>
+                        </div>
+
+                        <div class="detail-row">
+                            <div class="detail-label">Partner:</div>
+                            <div class="detail-value editable"
+                                 :contenteditable="editingTransaction"
+                                 x-text="selectedTransaction.account_name || '-'"
+                                 @blur="updateTransactionField('account_name', $event.target.textContent)">
+                            </div>
+                        </div>
+
+                        <div class="detail-row">
+                            <div class="detail-label">Verarbeitet:</div>
+                            <div class="detail-value">
+                                <label class="filter-checkbox">
+                                    <input type="checkbox"
+                                           x-model="selectedTransaction.processed"
+                                           :disabled="!editingTransaction"
+                                           @change="updateTransactionField('processed', selectedTransaction.processed)">
+                                    <span x-text="selectedTransaction.processed ? 'Ja' : 'Nein'"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="detail-row">
+                            <div class="detail-label">Importdatum:</div>
+                            <div class="detail-value" x-text="formatDate(selectedTransaction.import_date)"></div>
+                        </div>
+
+                        <template x-if="selectedTransaction.raw_data && Object.keys(selectedTransaction.raw_data).length > 0">
+                            <div class="raw-data-section">
+                                <div class="raw-data-title">Rohdaten:</div>
+                                <div class="raw-data-content" x-text="JSON.stringify(selectedTransaction.raw_data, null, 2)"></div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button
+                            x-show="!editingTransaction"
+                            @click="editingTransaction = true"
+                            class="save-button"
+                        >
+                            Bearbeiten
+                        </button>
+                        <button
+                            x-show="editingTransaction"
+                            @click="saveTransactionChanges()"
+                            class="save-button"
+                            :disabled="savingTransaction"
+                        >
+                            <span x-show="!savingTransaction">Speichern</span>
+                            <span x-show="savingTransaction">Wird gespeichert...</span>
+                        </button>
+                        <button
+                            x-show="editingTransaction"
+                            @click="cancelTransactionEdit()"
+                            class="back-button"
+                        >
+                            Abbrechen
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <script>
+        function transactionReviewApp() {
+            return {
+                error: null,
+                selectedImport: null,
+                selectedImportId: '',
+                availableImports: [],
+                loadingImports: false,
+                transactions: [],
+                transactionPage: 1,
+                transactionLimit: 50,
+                transactionTotal: 0,
+                transactionPages: 1,
+                showProcessed: true,
+                showUnprocessed: true,
+                loadingTransactions: false,
+
+                // Transaction detail
+                selectedTransaction: null,
+                editingTransaction: false,
+                savingTransaction: false,
+                transactionChanges: {},
+
+                async init() {
+                    console.log('Initializing transaction review app...');
+
+                    // First, load all available imports
+                    await this.loadAvailableImports();
+
+                    // Then check if there's a pre-selected import from sessionStorage
+                    const importData = sessionStorage.getItem('selectedImport');
+                    if (importData) {
+                        try {
+                            const parsed = JSON.parse(importData);
+                            console.log('Found pre-selected import:', parsed);
+
+                            // Find the import in our list
+                            const found = this.availableImports.find(i => i.import_id === parsed.import_id);
+                            if (found) {
+                                this.selectedImportId = found.import_id;
+                                await this.selectImport(found.import_id);
+                            }
+
+                            // Clear sessionStorage
+                            sessionStorage.removeItem('selectedImport');
+                        } catch (e) {
+                            console.error('Error parsing import data:', e);
+                        }
+                    }
+                },
+
+                async loadAvailableImports() {
+                    this.loadingImports = true;
+                    try {
+                        console.log('Loading available imports...');
+                        const response = await fetch('/api/imports/list?limit=100');
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(data.detail || 'Fehler beim Laden der Importe');
+                        }
+
+                        // Filter imports with transactions
+                        this.availableImports = data.imports.filter(imp =>
+                            imp.transaction_count > 0 && imp.source_type !== 'PDF'
+                        );
+
+                        console.log(`Found ${this.availableImports.length} imports with transactions`);
+
+                    } catch (error) {
+                        console.error('Error loading imports:', error);
+                        this.error = 'Fehler beim Laden der Importe: ' + error.message;
+                    } finally {
+                        this.loadingImports = false;
+                    }
+                },
+
+                async selectImport(importId) {
+                    if (!importId) {
+                        this.selectedImport = null;
+                        this.transactions = [];
+                        return;
+                    }
+
+                    console.log('Selecting import:', importId);
+
+                    // Find the import in our list
+                    const importData = this.availableImports.find(i => i.import_id === importId);
+                    if (!importData) {
+                        console.error('Import not found:', importId);
+                        return;
+                    }
+
+                    this.selectedImport = {
+                        import_id: importData.import_id,
+                        source_file: importData.source_file,
+                        source_type: importData.source_type,
+                        import_date: importData.import_date,
+                        metadata: importData.metadata
+                    };
+
+                    this.transactionPage = 1;
+                    await this.loadTransactions();
+                },
+
+                async loadTransactions() {
+                    if (!this.selectedImport) {
+                        console.log('No selectedImport available');
+                        return;
+                    }
+
+                    console.log('Loading transactions for import:', this.selectedImport.import_id);
+                    this.loadingTransactions = true;
+
+                    try {
+                        const params = new URLSearchParams({
+                            limit: this.transactionLimit,
+                            offset: (this.transactionPage - 1) * this.transactionLimit,
+                            show_processed: this.showProcessed,
+                            show_unprocessed: this.showUnprocessed
+                        });
+
+                        const url = `/api/imports/${this.selectedImport.import_id}/transactions?${params}`;
+                        console.log('Fetching from URL:', url);
+
+                        const response = await fetch(url);
+                        const data = await response.json();
+                        console.log('Response data:', data);
+
+                        if (!response.ok) {
+                            throw new Error(data.detail || 'Fehler beim Laden der Transaktionen');
+                        }
+
+                        this.transactions = data.transactions;
+                        this.transactionTotal = data.total;
+                        this.transactionPages = Math.ceil(data.total / this.transactionLimit);
+
+                        console.log(`Loaded ${this.transactions.length} transactions, total: ${this.transactionTotal}`);
+
+                        // Update selectedImport with full data
+                        this.selectedImport = {
+                            ...this.selectedImport,
+                            source_file: data.source_file,
+                            source_type: data.source_type,
+                            import_date: data.import_date,
+                            metadata: data.metadata
+                        };
+
+                    } catch (error) {
+                        console.error('Error loading transactions:', error);
+                        this.error = error.message;
+                    } finally {
+                        this.loadingTransactions = false;
+                    }
+                },
+
+                async loadTransactionPage(page) {
+                    if (page < 1 || page > this.transactionPages) return;
+                    this.transactionPage = page;
+                    await this.loadTransactions();
+                },
+
+                updateFilters() {
+                    this.transactionPage = 1;
+                    this.loadTransactions();
+                },
+
+                async showTransactionDetail(transaction) {
+                    try {
+                        const response = await fetch(`/api/imports/transactions/${transaction.id}`);
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(data.detail || 'Fehler beim Laden der Transaktionsdetails');
+                        }
+
+                        this.selectedTransaction = data;
+                        this.editingTransaction = false;
+                        this.transactionChanges = {};
+
+                    } catch (error) {
+                        this.error = error.message;
+                    }
+                },
+
+                updateTransactionField(field, value) {
+                    if (!this.editingTransaction) return;
+                    this.transactionChanges[field] = value;
+                },
+
+                async saveTransactionChanges() {
+                    if (!this.selectedTransaction || !this.editingTransaction) return;
+
+                    this.savingTransaction = true;
+                    try {
+                        // Build update payload
+                        const params = new URLSearchParams();
+
+                        for (const [field, value] of Object.entries(this.transactionChanges)) {
+                            if (field === 'amount') {
+                                // Parse amount
+                                const cleanAmount = value.replace('€', '').replace(',', '.').trim();
+                                params.append(field, cleanAmount);
+                            } else if (field === 'booking_date' && value !== '-') {
+                                // Parse date
+                                params.append(field, value);
+                            } else if (value !== '-' && value !== '') {
+                                params.append(field, value);
+                            }
+                        }
+
+                        const response = await fetch(`/api/imports/transactions/${this.selectedTransaction.id}?${params}`, {
+                            method: 'PUT'
+                        });
+
+                        const result = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(result.detail || 'Fehler beim Speichern');
+                        }
+
+                        // Update local data
+                        Object.assign(this.selectedTransaction, this.transactionChanges);
+
+                        // Update in transaction list
+                        const index = this.transactions.findIndex(t => t.id === this.selectedTransaction.id);
+                        if (index !== -1) {
+                            Object.assign(this.transactions[index], this.transactionChanges);
+                        }
+
+                        this.editingTransaction = false;
+                        this.transactionChanges = {};
+
+                    } catch (error) {
+                        this.error = error.message;
+                    } finally {
+                        this.savingTransaction = false;
+                    }
+                },
+
+                cancelTransactionEdit() {
+                    this.editingTransaction = false;
+                    this.transactionChanges = {};
+                    // Reload transaction to discard changes
+                    this.showTransactionDetail(this.selectedTransaction);
+                },
+
+                // Formatters
+                formatAmount(amount) {
+                    if (!amount && amount !== 0) return '-';
+                    const num = parseFloat(amount);
+                    return new Intl.NumberFormat('de-DE', {
+                        style: 'currency',
+                        currency: 'EUR'
+                    }).format(num);
+                },
+
+                formatDateShort(date) {
+                    if (!date) return '-';
+                    const d = new Date(date);
+                    return d.toLocaleDateString('de-DE');
+                },
+
+                formatDate(date) {
+                    if (!date) return '';
+                    const d = new Date(date);
+                    return d.toLocaleString('de-DE', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+</html>
