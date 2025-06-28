@@ -13,10 +13,11 @@ class ImporterFactory:
     """
 
     def __init__(self):
+        # Order matters - more specific importers first
         self._importers = [
-            BankXMLImporter(),
-            DATEVImporter(),
-            PDFImporter()
+            BankXMLImporter(),  # Bank XML should be checked before generic XML
+            PDFImporter(),
+            DATEVImporter()  # DATEV handles all CSV files
         ]
 
     def get_importer(self, filename: str) -> Optional[BaseImporter]:
@@ -25,6 +26,9 @@ class ImporterFactory:
 
         Returns None if no importer can handle the file
         """
+        # For XML files, we could check content to determine type
+        # For now, BankXMLImporter will handle all XML files
+
         for importer in self._importers:
             if importer.can_handle(filename):
                 return importer

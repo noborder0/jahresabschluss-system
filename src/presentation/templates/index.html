@@ -3,283 +3,877 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jahresabschluss-System - Phase 1</title>
+    <title>Jahresabschluss-System</title>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
         }
 
         .container {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
         }
 
-        h1 {
-            color: #333;
+        /* Header */
+        header {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 20px 0;
             margin-bottom: 30px;
         }
 
-        .upload-area {
-            border: 2px dashed #ddd;
+        header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .header-subtitle {
+            color: #7f8c8d;
+            font-size: 14px;
+            float: right;
+            margin-top: 8px;
+        }
+
+        /* Tabs */
+        .tabs-container {
+            background: white;
             border-radius: 8px;
-            padding: 40px;
-            text-align: center;
-            background-color: #fafafa;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+
+        .tabs-nav {
+            display: flex;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 16px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            color: #666;
+            position: relative;
             transition: all 0.3s ease;
         }
 
-        .upload-area:hover {
-            border-color: #4CAF50;
-            background-color: #f0f8f0;
+        .tab-button:hover {
+            color: #333;
+            background: #fafafa;
         }
 
-        .upload-area.dragover {
-            border-color: #4CAF50;
-            background-color: #e8f5e9;
+        .tab-button.active {
+            color: #10b981;
+        }
+
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #10b981;
+        }
+
+        .tab-content {
+            padding: 30px;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* Upload zones */
+        .upload-zone {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .upload-zone:hover {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .upload-zone.dragover {
+            border-color: #10b981;
+            background: #f0fdf4;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            color: #9ca3af;
+        }
+
+        .upload-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #10b981;
+            color: white;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            border: none;
+            font-size: 14px;
+        }
+
+        .upload-button:hover {
+            background: #059669;
         }
 
         input[type="file"] {
             display: none;
         }
 
-        .upload-button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
+        /* Bank upload grid */
+        .bank-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .bank-upload-box {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .bank-upload-box.has-file {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .file-selected {
+            color: #10b981;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        .remove-file {
+            color: #ef4444;
+            font-size: 12px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            margin-top: 5px;
         }
 
-        .upload-button:hover {
-            background-color: #45a049;
+        .bank-upload-button {
+            width: 100%;
+            padding: 14px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
 
-        .file-list {
-            margin-top: 30px;
+        .bank-upload-button:hover:not(:disabled) {
+            background: #059669;
         }
 
-        .file-item {
-            background: #f9f9f9;
-            border: 1px solid #e0e0e0;
+        .bank-upload-button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+
+        /* Error message */
+        .error-box {
+            background: #fee;
+            border-left: 4px solid #ef4444;
+            padding: 16px;
+            margin-bottom: 20px;
             border-radius: 4px;
-            padding: 15px;
-            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .error-text {
+            color: #991b1b;
+            font-size: 14px;
+        }
+
+        .close-error {
+            cursor: pointer;
+            color: #ef4444;
+        }
+
+        /* Import history */
+        .history-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .history-header {
+            padding: 20px 30px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .history-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .history-content {
+            padding: 20px 30px;
+        }
+
+        .history-group {
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .group-header {
+            background: #f7f9fc;
+            padding: 12px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .file-info {
-            flex: 1;
+        .group-name {
+            font-weight: 600;
+            color: #2c3e50;
         }
 
-        .file-name {
-            font-weight: bold;
-            color: #333;
-        }
-
-        .file-status {
-            font-size: 14px;
+        .group-stats {
             color: #666;
-            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        .import-item {
+            padding: 12px 16px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s ease;
+        }
+
+        .import-item:hover {
+            background: #fafafa;
+        }
+
+        .import-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-icon {
+            width: 24px;
+            height: 24px;
+            color: #666;
+        }
+
+        .import-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .import-filename {
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .import-date {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .import-stats {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .transaction-count {
+            color: #666;
+            font-size: 14px;
         }
 
         .status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 4px 12px;
+            border-radius: 12px;
             font-size: 12px;
-            font-weight: bold;
+            font-weight: 500;
         }
 
         .status-success {
-            background-color: #d4edda;
-            color: #155724;
+            background: #d1fae5;
+            color: #065f46;
         }
 
         .status-pending {
-            background-color: #fff3cd;
-            color: #856404;
+            background: #fef3c7;
+            color: #92400e;
         }
 
         .status-error {
-            background-color: #f8d7da;
-            color: #721c24;
+            background: #fee2e2;
+            color: #991b1b;
         }
 
-        .error-message {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 4px;
-            margin-top: 20px;
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
         }
 
-        .loading {
+        /* Loading spinner */
+        .spinner {
             display: inline-block;
             width: 20px;
             height: 20px;
             border: 3px solid #f3f3f3;
-            border-top: 3px solid #4CAF50;
+            border-top: 3px solid #10b981;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-left: 10px;
+            margin-right: 8px;
         }
 
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .bank-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs-nav {
+                flex-direction: column;
+            }
+
+            .tab-button {
+                text-align: left;
+                padding: 12px 20px;
+            }
+
+            .tab-button.active::after {
+                width: 3px;
+                height: 100%;
+                bottom: 0;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container" x-data="fileUploader()">
-        <h1>Jahresabschluss-System - Datei-Import</h1>
+    <div x-data="jahresabschlussApp()">
+        <!-- Header -->
+        <header>
+            <div class="container">
+                <h1>Jahresabschluss-System
+                    <span class="header-subtitle">Phase 1 - Import</span>
+                </h1>
+            </div>
+        </header>
 
-        <!-- Upload Area -->
-        <div class="upload-area"
-             @dragover.prevent="dragover = true"
-             @dragleave.prevent="dragover = false"
-             @drop.prevent="handleDrop($event)"
-             :class="{ 'dragover': dragover }">
+        <!-- Main Content -->
+        <main class="container">
+            <!-- Tabs -->
+            <div class="tabs-container">
+                <nav class="tabs-nav">
+                    <button
+                        @click="activeTab = 'datev'"
+                        :class="{ 'active': activeTab === 'datev' }"
+                        class="tab-button"
+                    >
+                        DATEV Import
+                    </button>
+                    <button
+                        @click="activeTab = 'bank'"
+                        :class="{ 'active': activeTab === 'bank' }"
+                        class="tab-button"
+                    >
+                        Bank Import
+                    </button>
+                    <button
+                        @click="activeTab = 'documents'"
+                        :class="{ 'active': activeTab === 'documents' }"
+                        class="tab-button"
+                    >
+                        Belege (PDF)
+                    </button>
+                </nav>
 
-            <p style="margin-bottom: 20px;">
-                Ziehen Sie Dateien hierher oder klicken Sie auf den Button
-            </p>
+                <div class="tab-content">
+                    <!-- DATEV Tab -->
+                    <div class="tab-panel" :class="{ 'active': activeTab === 'datev' }">
+                        <h2 style="font-size: 18px; margin-bottom: 10px;">DATEV CSV Import</h2>
+                        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                            Laden Sie Ihre DATEV-Exporte im CSV-Format hoch. Unterstützt werden sowohl klassische DATEV-Buchungsexporte als auch Belegexporte.
+                        </p>
 
-            <input type="file"
-                   id="fileInput"
-                   @change="handleFileSelect($event)"
-                   accept=".xml,.csv,.pdf"
-                   multiple>
+                        <div
+                            class="upload-zone"
+                            @dragover.prevent="datevDragover = true"
+                            @dragleave.prevent="datevDragover = false"
+                            @drop.prevent="handleDatevDrop($event)"
+                            :class="{ 'dragover': datevDragover }"
+                        >
+                            <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
 
-            <label for="fileInput" class="upload-button">
-                Dateien auswählen
-            </label>
+                            <input type="file" id="datevInput" @change="handleDatevSelect($event)" accept=".csv" class="hidden">
 
-            <p style="margin-top: 20px; color: #666; font-size: 14px;">
-                Unterstützte Formate: XML (Bank), CSV (DATEV), PDF (Belege)
-            </p>
-        </div>
+                            <p style="color: #666; margin-bottom: 16px;">CSV-Datei hierher ziehen oder</p>
+                            <label for="datevInput" class="upload-button">
+                                Datei auswählen
+                            </label>
 
-        <!-- Error Message -->
-        <div class="error-message" x-show="error" x-text="error"></div>
-
-        <!-- File List -->
-        <div class="file-list" x-show="files.length > 0">
-            <h2>Importierte Dateien</h2>
-
-            <template x-for="file in files" :key="file.id">
-                <div class="file-item">
-                    <div class="file-info">
-                        <div class="file-name" x-text="file.name"></div>
-                        <div class="file-status">
-                            <span x-text="`${file.transactionCount || 0} Transaktionen`"></span>
-                            <span x-text="` • ${file.sourceType || 'Unbekannt'}`"></span>
+                            <p style="font-size: 12px; color: #999; margin-top: 16px;">Unterstützte Formate: .csv (DATEV-Export)</p>
                         </div>
                     </div>
 
-                    <div>
-                        <span class="status-badge"
-                              :class="{
-                                  'status-success': file.status === 'success',
-                                  'status-pending': file.status === 'pending',
-                                  'status-error': file.status === 'error'
-                              }"
-                              x-text="file.statusText">
-                        </span>
-                        <span class="loading" x-show="file.status === 'pending'"></span>
+                    <!-- Bank Tab -->
+                    <div class="tab-panel" :class="{ 'active': activeTab === 'bank' }">
+                        <h2 style="font-size: 18px; margin-bottom: 10px;">Bank XML/CSV Import</h2>
+                        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                            Für Bank-Importe werden beide Dateien benötigt: Die XML-Datei (Schema) und die zugehörige CSV-Datei (Daten).
+                        </p>
+
+                        <div class="bank-grid">
+                            <!-- XML Upload -->
+                            <div class="bank-upload-box" :class="{ 'has-file': bankFiles.xml }">
+                                <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 16px;">1. XML-Datei (Schema)</h3>
+
+                                <input type="file" id="bankXmlInput" @change="handleBankXmlSelect($event)" accept=".xml">
+
+                                <template x-if="!bankFiles.xml">
+                                    <div>
+                                        <svg class="upload-icon" style="width: 36px; height: 36px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        <label for="bankXmlInput" class="upload-button" style="padding: 8px 16px; font-size: 14px;">
+                                            XML auswählen
+                                        </label>
+                                    </div>
+                                </template>
+
+                                <template x-if="bankFiles.xml">
+                                    <div>
+                                        <svg style="width: 36px; height: 36px; color: #10b981; margin: 0 auto 8px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <p class="file-selected" x-text="bankFiles.xml.name"></p>
+                                        <p class="remove-file" @click="bankFiles.xml = null">Entfernen</p>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- CSV Upload -->
+                            <div class="bank-upload-box" :class="{ 'has-file': bankFiles.csv }">
+                                <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 16px;">2. CSV-Datei (Daten)</h3>
+
+                                <input type="file" id="bankCsvInput" @change="handleBankCsvSelect($event)" accept=".csv">
+
+                                <template x-if="!bankFiles.csv">
+                                    <div>
+                                        <svg class="upload-icon" style="width: 36px; height: 36px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        <label for="bankCsvInput" class="upload-button" style="padding: 8px 16px; font-size: 14px;">
+                                            CSV auswählen
+                                        </label>
+                                    </div>
+                                </template>
+
+                                <template x-if="bankFiles.csv">
+                                    <div>
+                                        <svg style="width: 36px; height: 36px; color: #10b981; margin: 0 auto 8px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <p class="file-selected" x-text="bankFiles.csv.name"></p>
+                                        <p class="remove-file" @click="bankFiles.csv = null">Entfernen</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <button
+                            @click="uploadBankFiles()"
+                            :disabled="!bankFiles.xml || !bankFiles.csv || bankUploading"
+                            class="bank-upload-button"
+                        >
+                            <span x-show="!bankUploading">Bank-Import starten</span>
+                            <span x-show="bankUploading">
+                                <span class="spinner"></span>
+                                Wird importiert...
+                            </span>
+                        </button>
+                    </div>
+
+                    <!-- Documents Tab -->
+                    <div class="tab-panel" :class="{ 'active': activeTab === 'documents' }">
+                        <h2 style="font-size: 18px; margin-bottom: 10px;">Belege Upload</h2>
+                        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                            Laden Sie Ihre Rechnungen und Belege als PDF hoch. Diese werden in Phase 2 mit KI analysiert.
+                        </p>
+
+                        <div
+                            class="upload-zone"
+                            @dragover.prevent="pdfDragover = true"
+                            @dragleave.prevent="pdfDragover = false"
+                            @drop.prevent="handlePdfDrop($event)"
+                            :class="{ 'dragover': pdfDragover }"
+                        >
+                            <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+
+                            <input type="file" id="pdfInput" @change="handlePdfSelect($event)" accept=".pdf" multiple>
+
+                            <p style="color: #666; margin-bottom: 16px;">PDF-Dateien hierher ziehen oder</p>
+                            <label for="pdfInput" class="upload-button">
+                                Dateien auswählen
+                            </label>
+
+                            <p style="font-size: 12px; color: #999; margin-top: 16px;">Mehrere Dateien können gleichzeitig hochgeladen werden</p>
+                        </div>
                     </div>
                 </div>
-            </template>
-        </div>
+            </div>
+
+            <!-- Error Messages -->
+            <div x-show="error" x-transition class="error-box">
+                <span class="error-text" x-text="error"></span>
+                <span class="close-error" @click="error = null">✕</span>
+            </div>
+
+            <!-- Import History -->
+            <div class="history-container">
+                <div class="history-header">
+                    <h2>Import-Historie</h2>
+                </div>
+
+                <div class="history-content">
+                    <template x-if="imports.length === 0">
+                        <div class="empty-state">
+                            <p>Noch keine Importe vorhanden</p>
+                        </div>
+                    </template>
+
+                    <template x-if="imports.length > 0">
+                        <div>
+                            <template x-for="group in groupedImports" :key="group.name">
+                                <div class="history-group">
+                                    <div class="group-header">
+                                        <span class="group-name" x-text="group.name"></span>
+                                        <span class="group-stats" x-text="`${group.totalTransactions} Transaktionen`"></span>
+                                    </div>
+
+                                    <template x-for="import in group.imports" :key="import.id">
+                                        <div class="import-item">
+                                            <div class="import-info">
+                                                <span x-html="getFileIcon(import.sourceType)" class="file-icon"></span>
+                                                <div class="import-details">
+                                                    <span class="import-filename" x-text="import.filename"></span>
+                                                    <span class="import-date" x-text="formatDate(import.importDate)"></span>
+                                                </div>
+                                            </div>
+
+                                            <div class="import-stats">
+                                                <span class="transaction-count" x-text="`${import.transactionCount} Transaktionen`"></span>
+                                                <span
+                                                    class="status-badge"
+                                                    :class="getStatusClass(import.status)"
+                                                    x-text="getStatusText(import.status)"
+                                                ></span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script>
-        function fileUploader() {
+        function jahresabschlussApp() {
             return {
-                files: [],
+                activeTab: 'datev',
                 error: null,
-                dragover: false,
 
-                handleFileSelect(event) {
-                    const files = Array.from(event.target.files);
-                    this.uploadFiles(files);
+                // Drag states
+                datevDragover: false,
+                pdfDragover: false,
+
+                // Bank files
+                bankFiles: {
+                    xml: null,
+                    csv: null
+                },
+                bankUploading: false,
+
+                // Import history
+                imports: [],
+
+                // Computed property for grouped imports
+                get groupedImports() {
+                    const groups = {};
+
+                    this.imports.forEach(imp => {
+                        const groupName = this.getGroupName(imp);
+                        if (!groups[groupName]) {
+                            groups[groupName] = {
+                                name: groupName,
+                                imports: [],
+                                totalTransactions: 0
+                            };
+                        }
+                        groups[groupName].imports.push(imp);
+                        groups[groupName].totalTransactions += imp.transactionCount || 0;
+                    });
+
+                    return Object.values(groups).sort((a, b) => b.imports[0].importDate - a.imports[0].importDate);
                 },
 
-                handleDrop(event) {
-                    this.dragover = false;
+                getGroupName(imp) {
+                    if (imp.sourceType === 'BANK_XML' && imp.bankInfo) {
+                        return `Bank: ${imp.bankInfo.name || 'Unbekannt'}`;
+                    } else if (imp.sourceType === 'DATEV') {
+                        return 'DATEV Exporte';
+                    } else if (imp.sourceType === 'PDF') {
+                        return 'PDF Belege';
+                    }
+                    return 'Sonstige';
+                },
+
+                // DATEV handlers
+                handleDatevDrop(event) {
+                    this.datevDragover = false;
                     const files = Array.from(event.dataTransfer.files);
-                    this.uploadFiles(files);
+                    this.uploadFiles(files, 'datev');
                 },
 
-                async uploadFiles(files) {
-                    for (const file of files) {
-                        const fileId = Date.now() + Math.random();
+                handleDatevSelect(event) {
+                    const files = Array.from(event.target.files);
+                    this.uploadFiles(files, 'datev');
+                },
 
-                        // Add file to list with pending status
-                        this.files.unshift({
-                            id: fileId,
-                            name: file.name,
-                            status: 'pending',
-                            statusText: 'Wird hochgeladen...'
+                // Bank handlers
+                handleBankXmlSelect(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.bankFiles.xml = file;
+                    }
+                },
+
+                handleBankCsvSelect(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.bankFiles.csv = file;
+                    }
+                },
+
+                async uploadBankFiles() {
+                    if (!this.bankFiles.xml || !this.bankFiles.csv) return;
+
+                    this.bankUploading = true;
+                    this.error = null;
+
+                    try {
+                        // Upload both files together in a single request
+                        const formData = new FormData();
+                        formData.append('xml_file', this.bankFiles.xml);
+                        formData.append('csv_file', this.bankFiles.csv);
+
+                        const response = await fetch('/api/imports/bank', {
+                            method: 'POST',
+                            body: formData
                         });
 
-                        // Upload file
-                        try {
-                            const formData = new FormData();
-                            formData.append('file', file);
+                        const result = await response.json();
 
-                            const response = await fetch('/api/imports/file', {
-                                method: 'POST',
-                                body: formData
-                            });
-
-                            if (!response.ok) {
-                                throw new Error(`Upload fehlgeschlagen: ${response.statusText}`);
-                            }
-
-                            const result = await response.json();
-
-                            // Update file status
-                            const fileIndex = this.files.findIndex(f => f.id === fileId);
-                            if (fileIndex !== -1) {
-                                this.files[fileIndex] = {
-                                    ...this.files[fileIndex],
-                                    status: 'success',
-                                    statusText: 'Erfolgreich importiert',
-                                    transactionCount: result.transaction_count,
-                                    sourceType: result.source_type,
-                                    importId: result.import_id
-                                };
-                            }
-
-                            this.error = null;
-
-                        } catch (error) {
-                            // Update file status to error
-                            const fileIndex = this.files.findIndex(f => f.id === fileId);
-                            if (fileIndex !== -1) {
-                                this.files[fileIndex] = {
-                                    ...this.files[fileIndex],
-                                    status: 'error',
-                                    statusText: 'Fehler beim Import'
-                                };
-                            }
-
-                            this.error = error.message;
+                        if (!response.ok) {
+                            throw new Error(result.detail || 'Bank-Import fehlgeschlagen');
                         }
+
+                        // Add to import history
+                        const importEntry = {
+                            id: Date.now() + Math.random(),
+                            filename: this.bankFiles.xml.name,
+                            sourceType: 'BANK_XML',
+                            status: 'success',
+                            importDate: new Date(),
+                            transactionCount: result.transaction_count || 0,
+                            importId: result.import_id,
+                            bankInfo: result.bank_info
+                        };
+
+                        this.imports.unshift(importEntry);
+
+                        // Clear files
+                        this.bankFiles = { xml: null, csv: null };
+                        this.error = null;
+
+                    } catch (error) {
+                        this.error = error.message;
+                        console.error('Bank upload error:', error);
+                    } finally {
+                        this.bankUploading = false;
                     }
+                },
+
+                // PDF handlers
+                handlePdfDrop(event) {
+                    this.pdfDragover = false;
+                    const files = Array.from(event.dataTransfer.files);
+                    this.uploadFiles(files, 'pdf');
+                },
+
+                handlePdfSelect(event) {
+                    const files = Array.from(event.target.files);
+                    this.uploadFiles(files, 'pdf');
+                },
+
+                // Generic upload
+                async uploadFiles(files, type) {
+                    for (const file of files) {
+                        await this.uploadFile(file, type);
+                    }
+                },
+
+                async uploadFile(file, type) {
+                    const importEntry = {
+                        id: Date.now() + Math.random(),
+                        filename: file.name,
+                        sourceType: this.getSourceType(file, type),
+                        status: 'pending',
+                        importDate: new Date(),
+                        transactionCount: 0
+                    };
+
+                    this.imports.unshift(importEntry);
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+
+                        const response = await fetch('/api/imports/file', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const result = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(result.detail || 'Upload fehlgeschlagen');
+                        }
+
+                        // Update import entry
+                        const index = this.imports.findIndex(i => i.id === importEntry.id);
+                        if (index !== -1) {
+                            this.imports[index] = {
+                                ...this.imports[index],
+                                status: 'success',
+                                transactionCount: result.transaction_count || 0,
+                                importId: result.import_id,
+                                bankInfo: result.bank_info
+                            };
+                        }
+
+                        this.error = null;
+
+                    } catch (error) {
+                        const index = this.imports.findIndex(i => i.id === importEntry.id);
+                        if (index !== -1) {
+                            this.imports[index].status = 'error';
+                        }
+                        this.error = error.message;
+                    }
+                },
+
+                getSourceType(file, type) {
+                    if (type === 'bank' && file.name.toLowerCase().endsWith('.xml')) {
+                        return 'BANK_XML';
+                    } else if (type === 'datev' || file.name.toLowerCase().endsWith('.csv')) {
+                        return 'DATEV';
+                    } else if (file.name.toLowerCase().endsWith('.pdf')) {
+                        return 'PDF';
+                    }
+                    return 'UNKNOWN';
+                },
+
+                getFileIcon(sourceType) {
+                    const icons = {
+                        'BANK_XML': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>',
+                        'DATEV': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>',
+                        'PDF': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>'
+                    };
+                    return icons[sourceType] || icons['PDF'];
+                },
+
+                getStatusClass(status) {
+                    return {
+                        'pending': 'status-pending',
+                        'success': 'status-success',
+                        'error': 'status-error'
+                    }[status] || 'status-pending';
+                },
+
+                getStatusText(status) {
+                    return {
+                        'pending': 'Wird verarbeitet',
+                        'success': 'Erfolgreich',
+                        'error': 'Fehler'
+                    }[status] || status;
+                },
+
+                formatDate(date) {
+                    if (!date) return '';
+                    const d = new Date(date);
+                    return d.toLocaleString('de-DE', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
                 }
             }
         }
